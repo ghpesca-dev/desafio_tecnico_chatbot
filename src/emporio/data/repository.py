@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, process
 
 from emporio.data.loader import Dados
 from emporio.rules import normalizar, preco_atual, situacao_produto
@@ -12,6 +12,12 @@ MAX_RESULTADOS_BUSCA = 10
 CORTE_CATEGORIA = 85
 CORTE_TEXTO = 85
 TAMANHO_MINIMO_APROXIMADO = 4
+CORTE_REFERENCIA = 80
+# Acima de `pedal` x `pearl` (80) e abaixo de `takamene` x `takamine` (87,5).
+CORTE_PALAVRA = 85
+MARGEM_EMPATE = 5
+MAX_CANDIDATOS = 5
+MAX_ALTERNATIVAS = 3
 PALAVRAS_IGNORADAS = frozenset(
     "a as ao de do da dos das e em o os para instrumento outro todo".split()
 )
@@ -28,6 +34,15 @@ def _radical(palavra: str) -> str:
 def _palavras(texto: str) -> set[str]:
     radicais = {_radical(p) for p in normalizar(texto).split()}
     return radicais - PALAVRAS_IGNORADAS
+
+
+def _palavra_no_nome(palavra: str, nome: str) -> bool:
+    """Códigos com número são exatos: `gd30` não é `gd20`."""
+    if palavra in nome:
+        return True
+    if any(c.isdigit() for c in palavra):
+        return False
+    return any(fuzz.ratio(palavra, n) >= CORTE_PALAVRA for n in nome.split())
 
 
 @dataclass(frozen=True)
@@ -72,6 +87,13 @@ class ResultadoBusca:
     produtos: list[Produto]
     categorias: list[Categoria]
     categoria_sem_itens: bool
+
+
+@dataclass(frozen=True)
+class ResultadoReferencia:
+    tipo: str  # encontrado, ambiguo ou nao_encontrado
+    produto: Produto | None = None
+    candidatos: tuple[Produto, ...] = ()
 
 
 class Repository:
@@ -219,3 +241,119 @@ class Repository:
             ):
                 return False
         return True
+
+    def buscar_referencia(self, referencia: str) -> ResultadoReferencia:
+        """Id, depois sequência exata normalizada, depois nome aproximado."""
+        referencia = referencia.strip()
+        if referencia.isdigit():
+            produto = self.produto(int(referencia))
+            if produto:
+                return ResultadoReferencia("encontrado", produto)
+
+        sem_categoria = self._remover_palavras_de_categoria(referencia)
+        return (
+            self._por_sequencia_exata(referencia)
+            or self._por_palavras(referencia)
+            or self._por_sequencia_exata(sem_categoria)
+            or self._por_palavras(sem_categoria)
+            or self._por_aproximacao(sem_categoria)
+        )
+
+    def _remover_palavras_de_categoria(self, referencia: str) -> str:
+        """`ukulele ohana ck20` vira `ohana ck20`: o tipo não está no nome."""
+        categorias = {p for c in self.categorias() for p in _palavras(c.nome)}
+        return " ".join(
+            p
+            for p in normalizar(referencia).split()
+            if _radical(p) not in categorias and p not in PALAVRAS_IGNORADAS
+        )
+
+    @staticmethod
+    def _classificar(produtos: list[Produto]) -> ResultadoReferencia | None:
+        if not produtos:
+            return None
+        if len(produtos) == 1:
+            return ResultadoReferencia("encontrado", produtos[0])
+        return ResultadoReferencia(
+            "ambiguo", candidatos=tuple(produtos[:MAX_CANDIDATOS])
+        )
+
+    def _por_sequencia_exata(self, referencia: str) -> ResultadoReferencia | None:
+        # Sem espaços: `gf 3d`, `gf-3d` e `gf3d` são a mesma sequência.
+        alvo = normalizar(referencia).replace(" ", "")
+        if not alvo:
+            return None
+        return self._classificar(
+            [
+                p
+                for p in self.produtos()
+                if alvo in p.nome_normalizado.replace(" ", "")
+            ]
+        )
+
+    def _por_palavras(self, referencia: str) -> ResultadoReferencia | None:
+        palavras = normalizar(referencia).split()
+        if not palavras:
+            return None
+        return self._classificar(
+            [
+                p
+                for p in self.produtos()
+                if all(palavra in p.nome_normalizado for palavra in palavras)
+            ]
+        )
+
+    def _por_aproximacao(self, referencia: str) -> ResultadoReferencia:
+        """Só afirma o produto se toda palavra coincidir; senão, pede confirmação.
+
+        Informar o preço de outro modelo é pior do que perguntar: `gibson sg`
+        não pode virar a Les Paul, nem `takamine gd30` o GD20.
+        """
+        consulta = normalizar(referencia)
+        if not consulta:
+            return ResultadoReferencia("nao_encontrado")
+
+        palavras = consulta.split()
+        cobrem_tudo = [
+            p
+            for p in self.produtos()
+            if all(_palavra_no_nome(w, p.nome_normalizado) for w in palavras)
+        ]
+        if cobrem_tudo:
+            return self._classificar(cobrem_tudo)
+
+        nomes = {p.id: p.nome_normalizado for p in self.produtos()}
+        resultados = process.extract(
+            consulta,
+            nomes,
+            scorer=fuzz.WRatio,
+            score_cutoff=CORTE_REFERENCIA,
+            limit=None,
+        )
+        if not resultados:
+            return ResultadoReferencia("nao_encontrado")
+        melhor = resultados[0][1]
+        proximos = [
+            self.produto(chave)
+            for _, pontos, chave in resultados
+            if pontos >= melhor - MARGEM_EMPATE
+        ]
+        return ResultadoReferencia(
+            "ambiguo", candidatos=tuple(proximos[:MAX_CANDIDATOS])
+        )
+
+    def alternativas(self, produto: Produto) -> list[Produto]:
+        """Disponíveis da mesma categoria, do preço mais próximo ao mais distante."""
+        candidatos = [
+            p
+            for p in self.produtos()
+            if p.situacao == "disponivel"
+            and p.categoria_id == produto.categoria_id
+            and p.id != produto.id
+        ]
+        if produto.preco is None:
+            return candidatos[:MAX_ALTERNATIVAS]
+        candidatos.sort(
+            key=lambda p: (abs(p.preco_atual - produto.preco_atual), p.id)
+        )
+        return candidatos[:MAX_ALTERNATIVAS]

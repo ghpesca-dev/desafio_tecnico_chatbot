@@ -41,7 +41,7 @@ Retorna apenas produtos disponíveis, por menor preço, até 10.
   "resultado": "encontrado",
   "produto": {
     "id": 12, "nome": "...", "categoria": "...", "specs": {},
-    "situacao": "disponivel",
+    "situacao": "disponivel", "a_venda": true,
     "preco_tabela": "R$ 999,00", "preco_atual": "R$ 999,00",
     "promocao_ativa": null, "promocao_encerrada": null
   },
@@ -54,8 +54,8 @@ Retorna apenas produtos disponíveis, por menor preço, até 10.
 }
 ```
 
-- `resultado` pode ser `encontrado`, `ambiguo` (com `candidatos`, até 5) ou `nao_encontrado`.
-- `situacao` segue o [modelo de dados](../data-model.md). Com `em_breve`, `pagamento` é `null`. Com `fora_de_catalogo` e `temporariamente_indisponivel`, a saída indica que não está à venda agora.
+- `resultado` pode ser `encontrado`, `ambiguo` (com `candidatos`, até 5) ou `nao_encontrado`. Só é `encontrado` se todas as palavras coincidirem, e códigos com número precisam ser exatos. Um único candidato aproximado continua `ambiguo`, para o cliente confirmar.
+- `situacao` segue o [modelo de dados](../data-model.md). `a_venda` só é verdadeiro com `disponivel`. `pagamento` é `null` com `em_breve`, `fora_de_catalogo` e `sem_informacao`.
 - `alternativas`: até 3 produtos disponíveis da mesma categoria, com preço mais próximo.
 - Com promoção ativa, `pix` é o preço promocional e `pix_nao_acumula` é verdadeiro.
 

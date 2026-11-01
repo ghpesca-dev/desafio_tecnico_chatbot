@@ -6,12 +6,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, StringConstraints, ValidationError
 
 from emporio.data.repository import Produto, Repository
-from emporio.rules import formatar_brl, formatar_percentual
+from emporio.rules import calcular_pix, formatar_brl, formatar_percentual
 from emporio.session import SessionState
 
 logger = logging.getLogger("emporio.ferramentas")
@@ -151,4 +151,103 @@ def buscar_produtos(args: ArgsBuscarProdutos, ctx: Contexto) -> SaidaBuscarProdu
         categoria_resolvida=", ".join(c.nome for c in resultado.categorias) or None,
         categoria_sem_itens=resultado.categoria_sem_itens,
         produtos=[resumir_produto(p) for p in resultado.produtos],
+    )
+
+
+class ArgsDetalhesProduto(BaseModel):
+    referencia: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1)
+    ] = Field(description="Nome do produto, mesmo aproximado, ou id.")
+
+
+class PromocaoAtiva(BaseModel):
+    nome: str
+    desconto_percentual: str
+
+
+class ProdutoDetalhe(BaseModel):
+    id: int
+    nome: str
+    categoria: str | None
+    descricao: str
+    specs: dict
+    situacao: str
+    a_venda: bool
+    preco_tabela: str | None
+    preco_atual: str | None
+    promocao_ativa: PromocaoAtiva | None
+
+
+class Pagamento(BaseModel):
+    pix: str
+    pix_nao_acumula: bool
+
+
+class Candidato(BaseModel):
+    id: int
+    nome: str
+
+
+class SaidaDetalhesProduto(BaseModel):
+    resultado: str
+    produto: ProdutoDetalhe | None = None
+    pagamento: Pagamento | None = None
+    candidatos: list[Candidato] = []
+    alternativas: list[ProdutoResumo] = []
+
+
+def _detalhar(produto: Produto) -> ProdutoDetalhe:
+    promocao = produto.promocao_ativa
+    tem_preco = produto.preco is not None
+    return ProdutoDetalhe(
+        id=produto.id,
+        nome=produto.nome,
+        categoria=produto.categoria,
+        descricao=produto.descricao,
+        specs=produto.specs,
+        situacao=produto.situacao,
+        a_venda=produto.situacao == "disponivel",
+        preco_tabela=formatar_brl(produto.preco) if tem_preco else None,
+        preco_atual=formatar_brl(produto.preco_atual) if tem_preco else None,
+        promocao_ativa=(
+            PromocaoAtiva(
+                nome=promocao.nome,
+                desconto_percentual=formatar_percentual(promocao.desconto),
+            )
+            if promocao
+            else None
+        ),
+    )
+
+
+def _pagamento(produto: Produto) -> Pagamento | None:
+    if produto.situacao not in {"disponivel", "temporariamente_indisponivel"}:
+        return None
+    promocao = produto.promocao_ativa
+    pix = calcular_pix(produto.preco, promocao.desconto if promocao else None)
+    return Pagamento(pix=formatar_brl(pix.valor), pix_nao_acumula=pix.nao_acumula)
+
+
+@REGISTRO.ferramenta(
+    "detalhes_produto",
+    "Preço, situação, pagamento e alternativas de um produto específico.",
+    ArgsDetalhesProduto,
+)
+def detalhes_produto(
+    args: ArgsDetalhesProduto, ctx: Contexto
+) -> SaidaDetalhesProduto:
+    encontrado = ctx.repo.buscar_referencia(args.referencia)
+    if encontrado.tipo != "encontrado":
+        return SaidaDetalhesProduto(
+            resultado=encontrado.tipo,
+            candidatos=[
+                Candidato(id=p.id, nome=p.nome) for p in encontrado.candidatos
+            ],
+        )
+    produto = encontrado.produto
+    return SaidaDetalhesProduto(
+        resultado="encontrado",
+        produto=_detalhar(produto),
+        pagamento=_pagamento(produto),
+        alternativas=[resumir_produto(p) for p in ctx.repo.alternativas(produto)],
     )

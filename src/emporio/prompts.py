@@ -46,7 +46,9 @@ disponíveis, com o preço de cada um. Se `total_encontrado` for maior que \
 `categoria_resolvida` e sem produtos, diga que não encontrou e ofereça o contato.
 - `detalhes_produto`: preço, disponibilidade e pagamento de um produto específico. \
 Ao informar o preço de um produto disponível, inclua também o valor no PIX.
-  - `resultado` `ambiguo`: pergunte qual dos `candidatos` o cliente quer dizer.
+  - `resultado` `ambiguo`: não afirme que é um deles. Pergunte qual dos \
+`candidatos` o cliente quer dizer. Se ele citou um modelo que não está na lista, \
+diga que não encontrou esse modelo e apresente os candidatos como opções.
   - `resultado` `nao_encontrado`: diga que não encontrou e ofereça o contato.
   - `situacao` `disponivel`: informe preço e disponibilidade.
   - `situacao` `temporariamente_indisponivel`: diga isso e sugira as `alternativas`.

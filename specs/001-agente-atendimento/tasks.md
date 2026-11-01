@@ -87,16 +87,16 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 ### Tests for User Story 2
 
-- [ ] T024 [P] [US2] Escrever `tests/unit/test_detalhes.py`: `takamine gd20`, `Takamine GD-20` e `takamin gd20` encontram o 95; `takamine` retorna `ambiguo` com os 4 candidatos; `giannini gf 3d` encontra o 96; produto inexistente retorna `nao_encontrado`; 96 tem `temporariamente_indisponivel` com alternativas disponíveis; 113 e 136 têm `fora_de_catalogo`; 130 tem `em_breve`, `pagamento` nulo e nunca aparece nas alternativas; toda alternativa é `disponivel`, da mesma categoria e ordenada por proximidade de preço
-- [ ] T025 [P] [US2] Escrever `tests/unit/test_variacoes_nome.py` com 20 variações de escrita (SC-005): pelo menos 18 levam ao produto certo ou a candidatos que o incluem
-- [ ] T026 [P] [US2] Escrever `tests/e2e/test_us2_produto.py`: "Quanto custa o Takamine GD20?" responde `R$ 2.199,00`, disponibilidade e `R$ 2.089,05` no PIX; produtos 96, 113 e 130 recebem a mensagem da sua situação
+- [X] T024 [P] [US2] Escrever `tests/unit/test_detalhes.py`: `takamine gd20`, `Takamine GD-20` e `takamin gd20` encontram o 95; `takamine` retorna `ambiguo` com os 4 candidatos; `giannini gf 3d` encontra o 96; produto inexistente retorna `nao_encontrado`; 96 tem `temporariamente_indisponivel` com alternativas disponíveis; 113 e 136 têm `fora_de_catalogo`; 130 tem `em_breve`, `pagamento` nulo e nunca aparece nas alternativas; toda alternativa é `disponivel`, da mesma categoria e ordenada por proximidade de preço
+- [X] T025 [P] [US2] Escrever `tests/unit/test_variacoes_nome.py` com 20 variações de escrita (SC-005): pelo menos 18 levam ao produto certo ou a candidatos que o incluem
+- [X] T026 [P] [US2] Escrever `tests/e2e/test_us2_produto.py`: "Quanto custa o Takamine GD20?" responde `R$ 2.199,00`, disponibilidade e `R$ 2.089,05` no PIX; produtos 96, 113 e 130 recebem a mensagem da sua situação
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Adicionar em `src/emporio/data/repository.py` a busca por referência (id, sequência normalizada exata, depois `rapidfuzz`), com resultados `encontrado`, `ambiguo` (até 5) e `nao_encontrado`; calibrar os limiares (ponto de partida: corte 80, empate até 5) até T025 passar
-- [ ] T028 [US2] Adicionar em `src/emporio/data/repository.py` `alternativas`: até 3 produtos `disponivel` da mesma categoria, com preço mais próximo
-- [ ] T029 [US2] Adicionar a ferramenta `detalhes_produto` em `src/emporio/tools.py`, conforme `contracts/tools.md`, inicialmente com `pagamento.pix` e `pix_nao_acumula`; `parcelas` e `promocao_encerrada` entram na US4
-- [ ] T030 [US2] Em `src/emporio/prompts.py`, orientar a resposta por `situacao` e a pergunta de confirmação quando `resultado` for `ambiguo`
+- [X] T027 [US2] Adicionar em `src/emporio/data/repository.py` a busca por referência (id, sequência normalizada exata, depois `rapidfuzz`), com resultados `encontrado`, `ambiguo` (até 5) e `nao_encontrado`; calibrar os limiares (ponto de partida: corte 80, empate até 5) até T025 passar
+- [X] T028 [US2] Adicionar em `src/emporio/data/repository.py` `alternativas`: até 3 produtos `disponivel` da mesma categoria, com preço mais próximo
+- [X] T029 [US2] Adicionar a ferramenta `detalhes_produto` em `src/emporio/tools.py`, conforme `contracts/tools.md`, inicialmente com `pagamento.pix` e `pix_nao_acumula`; `parcelas` e `promocao_encerrada` entram na US4
+- [X] T030 [US2] Em `src/emporio/prompts.py`, orientar a resposta por `situacao` e a pergunta de confirmação quando `resultado` for `ambiguo`
 
 **Checkpoint**: US1 e US2 funcionam de forma independente
 
