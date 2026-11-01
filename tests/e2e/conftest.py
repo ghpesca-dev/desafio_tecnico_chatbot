@@ -34,7 +34,10 @@ class Conversa:
     sessao: SessionState = field(default_factory=SessionState)
 
     def enviar(self, texto: str) -> str:
-        return self.agente.responder(self.sessao, texto)
+        resposta = self.agente.responder(self.sessao, texto)
+        for termo in ("ferramenta", "tool_call", "sistema"):
+            assert termo not in resposta.lower(), f"Termo interno: {termo}"
+        return resposta
 
     @property
     def ferramentas(self) -> list[str]:

@@ -33,6 +33,7 @@ def test_lista_nao_faz_afirmacao_sem_fonte(conversa):
 
     assert "mais vendid" not in resposta
     assert "mais procurad" not in resposta
+    assert "macio" not in resposta
     assert "12" in resposta  # total_encontrado
 
 
@@ -40,7 +41,9 @@ def test_alternativa_em_promocao_mostra_preco_original(conversa):
     conversa.enviar("Quanto custa o Takamine GD20?")
     resposta = conversa.enviar("tem outro parecido?")
 
-    # Crafter HT-100, de R$ 2.399,00 por R$ 1.967,18.
-    if "1.967,18" in resposta:
-        assert "2.399,00" in resposta
-        assert "18%" in resposta
+    # Crafter HT-100, de R$ 2.399,00 por R$ 1.967,18, é uma das alternativas.
+    assert "1.967,18" in resposta
+    assert "2.399,00" in resposta
+    assert "18%" in resposta
+    assert "1.899,00" in resposta  # Yamaha APX600
+    assert "2.499,00" in resposta  # Takamine GC1CE
