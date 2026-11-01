@@ -407,6 +407,7 @@ api = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "fastapi" },
     { name = "httpx" },
     { name = "pdfplumber" },
     { name = "pytest" },
@@ -428,6 +429,7 @@ provides-extras = ["api"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "fastapi", specifier = ">=0.162" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "pdfplumber", specifier = ">=0.11" },
     { name = "pytest", specifier = ">=9.2" },

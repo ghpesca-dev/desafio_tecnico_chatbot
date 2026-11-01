@@ -21,7 +21,12 @@ api = ["fastapi>=0.162", "uvicorn>=0.54"]
 emporio = "emporio.cli:main"
 
 [dependency-groups]
-dev = ["httpx>=0.28", "pdfplumber>=0.11", "pytest>=9.2"]
+dev = [
+    "fastapi>=0.162",
+    "httpx>=0.28",
+    "pdfplumber>=0.11",
+    "pytest>=9.2",
+]
 
 [build-system]
 requires = ["hatchling"]
