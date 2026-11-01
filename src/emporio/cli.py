@@ -3,12 +3,15 @@
 import argparse
 import logging
 import sys
+from datetime import datetime
 
 from rich.console import Console
 from rich.markdown import Markdown
 
 from emporio.agent import Agent, criar_cliente
+from emporio.complaints import Reclamacoes
 from emporio.config import (
+    ARQUIVO_RECLAMACOES,
     PASTA_DADOS,
     PASTA_POLITICAS,
     ConfiguracaoInvalida,
@@ -27,6 +30,12 @@ COMANDOS_SAIDA = {"sair", "exit", "quit"}
 def criar_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="emporio", description="Atendimento da Empório da Música"
+    )
+    parser.add_argument(
+        "comando",
+        nargs="?",
+        choices=["reclamacoes"],
+        help="lista as reclamações registradas, para a equipe",
     )
     parser.add_argument("--data", help="fixa a data de referência (AAAA-MM-DD)")
     parser.add_argument(
@@ -49,7 +58,25 @@ def criar_agente(data_cli: str | None) -> Agent:
         repo=Repository(carregar_dados(PASTA_DADOS)),
         relogio=criar_relogio(config.data_referencia),
         politicas=Politicas(PASTA_POLITICAS),
+        reclamacoes=Reclamacoes(ARQUIVO_RECLAMACOES),
     )
+
+
+def listar_reclamacoes(console: Console) -> None:
+    registros = Reclamacoes(ARQUIVO_RECLAMACOES).listar()
+    if not registros:
+        console.print("Nenhuma reclamação registrada.")
+        return
+    for r in registros:
+        momento = datetime.fromisoformat(r.registrada_em).strftime("%d/%m/%Y %H:%M")
+        extras = " | ".join(
+            texto
+            for texto in (r.nome, f"pedido {r.pedido}" if r.pedido else None)
+            if texto
+        )
+        console.print(f"[bold]{momento}[/bold] {r.contato} {extras}", markup=True)
+        console.print(r.resumo, markup=False, highlight=False)
+        console.print()
 
 
 def conversar(agente: Agent, console: Console) -> None:
@@ -74,6 +101,9 @@ def conversar(agente: Agent, console: Console) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = criar_parser().parse_args(argv)
+    if args.comando == "reclamacoes":
+        listar_reclamacoes(Console())
+        return 0
     # Avisos de dados e falhas tratadas só interessam em depuração: o cliente
     # recebe a mensagem amigável.
     logging.basicConfig(

@@ -1,6 +1,8 @@
 """Laço de tool use com um cliente LLM falso, sem rede."""
 
 import json
+import threading
+import time
 from datetime import date, datetime
 from types import SimpleNamespace as NS
 
@@ -313,3 +315,22 @@ def test_oferta_de_ajuda_nao_e_promessa(registro):
     criar_agente(cliente, registro).responder(SessionState(), "oi")
 
     assert len(cliente.pedidos) == 1
+
+
+def test_chamada_travada_vira_fallback_no_limite_total(registro):
+    liberar = threading.Event()
+
+    class Travado:
+        chat = NS(completions=NS(create=lambda **_: liberar.wait(5)))
+
+    sessao = SessionState()
+    inicio = time.perf_counter()
+
+    resposta = criar_agente(Travado(), registro, limite_chamada_s=0.05).responder(
+        sessao, "oi"
+    )
+    liberar.set()
+
+    assert resposta == FALLBACK
+    assert time.perf_counter() - inicio < 2
+    assert sessao.mensagens == []

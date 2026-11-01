@@ -4,19 +4,21 @@ import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, StringConstraints, ValidationError
 
-from emporio.data.repository import Pedido, Produto, Repository
+from emporio.complaints import Reclamacoes
+from emporio.data.repository import Pedido, Produto, Promocao, Repository
 from emporio.policies import Politicas, Topico
 from emporio.rules import (
     calcular_pix,
     calcular_prazos,
     formatar_brl,
     formatar_percentual,
+    tabela_parcelas,
 )
 from emporio.session import SessionState
 
@@ -31,6 +33,8 @@ class Contexto:
     sessao: SessionState
     data_referencia: date
     politicas: Politicas | None = None
+    reclamacoes: Reclamacoes | None = None
+    agora: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -144,6 +148,12 @@ class ArgsBuscarProdutos(BaseModel):
     texto: str | None = Field(None, description="Nome ou marca do produto.")
     preco_min: Decimal | None = Field(None, description="Preço mínimo, em reais.")
     preco_max: Decimal | None = Field(None, description="Preço máximo, em reais.")
+    em_promocao: bool = Field(False, description="Só produtos em promoção ativa.")
+
+
+class PromocaoEncontrada(BaseModel):
+    nome: str
+    ativa: bool
 
 
 class SaidaBuscarProdutos(BaseModel):
@@ -152,20 +162,26 @@ class SaidaBuscarProdutos(BaseModel):
     categoria_resolvida: str | None
     categoria_sem_itens: bool
     produtos: list[ProdutoResumo]
+    promocao_encontrada: PromocaoEncontrada | None = None
     orientacao: str | None = None
 
 
 @REGISTRO.ferramenta(
     "buscar_produtos",
-    "Lista produtos disponíveis por tipo, nome ou marca e faixa de preço.",
+    "Lista produtos disponíveis por tipo, nome, marca, faixa de preço ou promoção. "
+    "Em `texto`, aceita o nome de uma campanha, como Black Friday.",
     ArgsBuscarProdutos,
 )
 def buscar_produtos(args: ArgsBuscarProdutos, ctx: Contexto) -> SaidaBuscarProdutos:
+    encontrada = ctx.repo.promocao_por_nome(args.texto) if args.texto else None
+    campanha_ativa = encontrada is not None and encontrada.ativa
     resultado = ctx.repo.buscar_produtos(
         categoria=args.categoria,
-        texto=args.texto,
+        texto=None if campanha_ativa else args.texto,
         preco_min=args.preco_min,
         preco_max=args.preco_max,
+        em_promocao=args.em_promocao,
+        promocao=encontrada.nome if campanha_ativa else None,
     )
     return SaidaBuscarProdutos(
         total_encontrado=resultado.total,
@@ -173,9 +189,14 @@ def buscar_produtos(args: ArgsBuscarProdutos, ctx: Contexto) -> SaidaBuscarProdu
         categoria_resolvida=", ".join(c.nome for c in resultado.categorias) or None,
         categoria_sem_itens=resultado.categoria_sem_itens,
         produtos=[resumir_produto(p) for p in resultado.produtos],
+        promocao_encontrada=(
+            PromocaoEncontrada(nome=encontrada.nome, ativa=encontrada.ativa)
+            if encontrada
+            else None
+        ),
         orientacao=(
             ORIENTACAO_NAO_ENCONTRADO
-            if not resultado.total and not resultado.categoria_sem_itens
+            if not (resultado.total or resultado.categoria_sem_itens or encontrada)
             else None
         ),
     )
@@ -187,7 +208,7 @@ class ArgsDetalhesProduto(BaseModel):
     ] = Field(description="Nome do produto, mesmo aproximado, ou id.")
 
 
-class PromocaoAtiva(BaseModel):
+class PromocaoResumo(BaseModel):
     nome: str
     desconto_percentual: str
 
@@ -202,12 +223,21 @@ class ProdutoDetalhe(BaseModel):
     a_venda: bool
     preco_tabela: str | None
     preco_atual: str | None
-    promocao_ativa: PromocaoAtiva | None
+    promocao_ativa: PromocaoResumo | None
+    promocao_encerrada: PromocaoResumo | None
+
+
+class ParcelaSaida(BaseModel):
+    vezes: int
+    valor: str
 
 
 class Pagamento(BaseModel):
     pix: str
     pix_nao_acumula: bool
+    parcelas: list[ParcelaSaida]
+    parcelas_sem_juros: bool = True  # Manual, 3.1: até 12x, todas sem juros.
+    max_parcelas: int
 
 
 class Candidato(BaseModel):
@@ -224,8 +254,16 @@ class SaidaDetalhesProduto(BaseModel):
     orientacao: str | None = None
 
 
+def _resumir_promocao(promocao: Promocao | None) -> PromocaoResumo | None:
+    if promocao is None:
+        return None
+    return PromocaoResumo(
+        nome=promocao.nome,
+        desconto_percentual=formatar_percentual(promocao.desconto),
+    )
+
+
 def _detalhar(produto: Produto) -> ProdutoDetalhe:
-    promocao = produto.promocao_ativa
     tem_preco = produto.preco is not None
     return ProdutoDetalhe(
         id=produto.id,
@@ -237,14 +275,8 @@ def _detalhar(produto: Produto) -> ProdutoDetalhe:
         a_venda=produto.situacao == "disponivel",
         preco_tabela=formatar_brl(produto.preco) if tem_preco else None,
         preco_atual=formatar_brl(produto.preco_atual) if tem_preco else None,
-        promocao_ativa=(
-            PromocaoAtiva(
-                nome=promocao.nome,
-                desconto_percentual=formatar_percentual(promocao.desconto),
-            )
-            if promocao
-            else None
-        ),
+        promocao_ativa=_resumir_promocao(produto.promocao_ativa),
+        promocao_encerrada=_resumir_promocao(produto.promocao_encerrada),
     )
 
 
@@ -253,7 +285,16 @@ def _pagamento(produto: Produto) -> Pagamento | None:
         return None
     promocao = produto.promocao_ativa
     pix = calcular_pix(produto.preco, promocao.desconto if promocao else None)
-    return Pagamento(pix=formatar_brl(pix.valor), pix_nao_acumula=pix.nao_acumula)
+    tabela = tabela_parcelas(produto.preco_atual)
+    return Pagamento(
+        pix=formatar_brl(pix.valor),
+        pix_nao_acumula=pix.nao_acumula,
+        parcelas=[
+            ParcelaSaida(vezes=p.vezes, valor=formatar_brl(p.valor))
+            for p in tabela.parcelas
+        ],
+        max_parcelas=tabela.max_parcelas,
+    )
 
 
 @REGISTRO.ferramenta(
@@ -418,3 +459,46 @@ def consultar_politica(
     return SaidaConsultarPolitica(
         topico=args.topico, texto=ctx.politicas.texto(args.topico)
     )
+
+
+TextoObrigatorio = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1)
+]
+
+
+class ArgsRegistrarReclamacao(BaseModel):
+    resumo: TextoObrigatorio = Field(description="Resumo da reclamação.")
+    contato: TextoObrigatorio = Field(
+        description="E-mail ou telefone para retorno, informado pelo cliente."
+    )
+    nome: str | None = Field(None, description="Nome do cliente, se ele informou.")
+    numero_pedido: int | None = Field(None, description="Pedido relacionado, se houver.")
+
+
+class SaidaRegistrarReclamacao(BaseModel):
+    registrada: bool
+    protocolo: str | None = None
+
+
+@REGISTRO.ferramenta(
+    "registrar_reclamacao",
+    "Registra uma reclamação para a equipe retornar ao cliente. Exige o resumo e "
+    "um contato informado pelo cliente.",
+    ArgsRegistrarReclamacao,
+)
+def registrar_reclamacao(
+    args: ArgsRegistrarReclamacao, ctx: Contexto
+) -> SaidaRegistrarReclamacao:
+    try:
+        reclamacao = ctx.reclamacoes.registrar(
+            sessao_id=ctx.sessao.id,
+            resumo=args.resumo,
+            contato=args.contato,
+            momento=ctx.agora,
+            nome=args.nome,
+            pedido=args.numero_pedido,
+        )
+    except OSError:
+        logger.exception("Falha ao gravar reclamação")
+        return SaidaRegistrarReclamacao(registrada=False)
+    return SaidaRegistrarReclamacao(registrada=True, protocolo=reclamacao.id)

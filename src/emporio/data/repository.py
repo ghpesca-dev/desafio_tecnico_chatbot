@@ -108,6 +108,12 @@ class ResultadoReferencia:
 
 
 @dataclass(frozen=True)
+class PromocaoEncontrada:
+    nome: str
+    ativa: bool
+
+
+@dataclass(frozen=True)
 class ItemPedido:
     nome: str
     quantidade: int
@@ -246,6 +252,8 @@ class Repository:
         texto: str | None = None,
         preco_min: Decimal | None = None,
         preco_max: Decimal | None = None,
+        em_promocao: bool = False,
+        promocao: str | None = None,
     ) -> ResultadoBusca:
         """Só produtos disponíveis, por menor preço atual."""
         candidatos = self.produtos()
@@ -265,6 +273,11 @@ class Repository:
             and (preco_min is None or p.preco_atual >= preco_min)
             and (preco_max is None or p.preco_atual <= preco_max)
             and (not texto or self._coincide_texto(p, texto))
+            and (not em_promocao or p.promocao_ativa)
+            and (
+                promocao is None
+                or (p.promocao_ativa and p.promocao_ativa.nome == promocao)
+            )
         ]
         encontrados.sort(key=lambda p: (p.preco_atual, p.id))
 
@@ -289,6 +302,20 @@ class Repository:
             ):
                 return False
         return True
+
+    def promocao_por_nome(self, texto: str) -> PromocaoEncontrada | None:
+        """O mesmo nome pode estar ativa em um produto e encerrada em outro."""
+        alvo = normalizar(texto)
+        linhas = [
+            p
+            for p in self._promocoes.itertuples(index=False)
+            if normalizar(p.description) == alvo
+        ]
+        if not linhas:
+            return None
+        return PromocaoEncontrada(
+            linhas[0].description, any(p.is_active for p in linhas)
+        )
 
     def buscar_referencia(self, referencia: str) -> ResultadoReferencia:
         """Id, depois sequência exata normalizada, depois nome aproximado."""

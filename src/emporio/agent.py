@@ -2,13 +2,16 @@
 
 import json
 import logging
+import queue
 import re
+import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
 
 import openai
 
+from emporio.complaints import Reclamacoes
 from emporio.config import BASE_URL, Config
 from emporio.data.repository import Repository
 from emporio.policies import Politicas
@@ -67,6 +70,7 @@ class Agent:
         repo: Repository | None,
         relogio: Callable[[], datetime],
         politicas: Politicas | None = None,
+        reclamacoes: Reclamacoes | None = None,
     ):
         self._cliente = cliente
         self._config = config
@@ -74,6 +78,7 @@ class Agent:
         self._repo = repo
         self._relogio = relogio
         self._politicas = politicas
+        self._reclamacoes = reclamacoes
 
     def responder(self, sessao: SessionState, texto: str) -> str:
         sessao.registrar_mensagem_cliente(texto)
@@ -88,7 +93,7 @@ class Agent:
         for _ in range(self._config.max_iteracoes):
             try:
                 mensagem = self._chamar_llm(sessao, exigir_ferramenta)
-            except (openai.OpenAIError, ValueError) as erro:
+            except (openai.OpenAIError, ValueError, TimeoutError) as erro:
                 logger.warning(
                     "Falha na chamada ao LLM: %s",
                     type(erro).__name__,
@@ -137,10 +142,34 @@ class Agent:
         if exigir_ferramenta and ferramentas:
             parametros["tool_choice"] = "required"
 
-        resposta = self._cliente.chat.completions.create(**parametros)
+        resposta = self._criar_com_limite(parametros)
         if not resposta.choices:
             raise ValueError("Resposta do LLM sem choices")
         return resposta.choices[0].message
+
+    def _criar_com_limite(self, parametros: dict):
+        """Limita o tempo total da chamada.
+
+        O `timeout` do cliente vale por leitura, e tentativas somam tempo: uma
+        conexão que recebe bytes aos poucos nunca o dispara. O fio é abandonado
+        se estourar, porque não há como interromper a chamada em andamento.
+        """
+        resultado: queue.Queue = queue.Queue(maxsize=1)
+
+        def executar() -> None:
+            try:
+                resultado.put((self._cliente.chat.completions.create(**parametros), None))
+            except Exception as erro:
+                resultado.put((None, erro))
+
+        threading.Thread(target=executar, daemon=True).start()
+        try:
+            resposta, erro = resultado.get(timeout=self._config.limite_chamada_s)
+        except queue.Empty as vazio:
+            raise TimeoutError("Limite total da chamada ao LLM") from vazio
+        if erro is not None:
+            raise erro
+        return resposta
 
     def _executar_chamadas(self, sessao: SessionState, mensagem) -> None:
         sessao.mensagens.append(
@@ -160,8 +189,14 @@ class Agent:
                 ],
             }
         )
+        agora = self._relogio()
         contexto = Contexto(
-            self._repo, sessao, self._relogio().date(), self._politicas
+            self._repo,
+            sessao,
+            agora.date(),
+            self._politicas,
+            self._reclamacoes,
+            agora,
         )
         for chamada in mensagem.tool_calls:
             inicio = time.perf_counter()

@@ -12,9 +12,10 @@ from dotenv import load_dotenv
 RAIZ = Path(__file__).resolve().parents[2]
 PASTA_DADOS = RAIZ / "data"
 PASTA_POLITICAS = PASTA_DADOS / "processed" / "politicas"
+ARQUIVO_RECLAMACOES = PASTA_DADOS / "runtime" / "reclamacoes.jsonl"
 
 BASE_URL = "https://openrouter.ai/api/v1"
-MODELO_PADRAO = "anthropic/claude-sonnet-5.5"
+MODELO_PADRAO = "anthropic/claude-haiku-5.5"
 FUSO = ZoneInfo("America/Campo_Grande")
 
 
@@ -32,6 +33,7 @@ class Config:
     janela_trocas: int = 10
     timeout_s: float = 30.0
     max_retries: int = 2
+    limite_chamada_s: float = 60.0
 
 
 def _ler_data(texto: str, origem: str) -> date:

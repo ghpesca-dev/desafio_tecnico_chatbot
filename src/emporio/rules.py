@@ -17,6 +17,9 @@ DIAS_GARANTIA_LEGAL = 90
 BASE_ENTREGA = "previsao_entrega"
 BASE_COMPRA = "data_compra"
 STATUS_NAO_ENTREGUE = frozenset({"pending", "confirmed", "shipped"})
+MAX_PARCELAS = 12
+# Até quantas vezes vale cada parcela mínima (manual, 3.1).
+FAIXAS_PARCELA = ((1, Decimal("0")), (3, Decimal("50")), (6, Decimal("80")), (12, Decimal("100")))
 
 
 def arredondar(valor: Decimal) -> Decimal:
@@ -57,6 +60,36 @@ def calcular_pix(preco: Decimal, desconto_percentual: Decimal | None) -> Pix:
     if desconto_percentual is not None:
         return Pix(preco_atual(preco, desconto_percentual), nao_acumula=True)
     return Pix(preco_atual(preco, DESCONTO_PIX), nao_acumula=False)
+
+
+@dataclass(frozen=True)
+class Parcela:
+    vezes: int
+    valor: Decimal
+
+
+@dataclass(frozen=True)
+class TabelaParcelas:
+    parcelas: tuple[Parcela, ...]
+
+    @property
+    def max_parcelas(self) -> int:
+        return self.parcelas[-1].vezes
+
+
+def _parcela_minima(vezes: int) -> Decimal:
+    return next(minimo for limite, minimo in FAIXAS_PARCELA if vezes <= limite)
+
+
+def tabela_parcelas(preco: Decimal) -> TabelaParcelas:
+    """Sobre o preço atual. Compara antes de arredondar: 8x de R$ 99,9999 não vale."""
+    return TabelaParcelas(
+        tuple(
+            Parcela(vezes, arredondar(preco / vezes))
+            for vezes in range(1, MAX_PARCELAS + 1)
+            if preco / vezes >= _parcela_minima(vezes)
+        )
+    )
 
 
 def situacao_produto(status: str, estoque: int, preco: Decimal | None) -> str:

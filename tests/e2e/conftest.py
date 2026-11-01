@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from emporio.agent import Agent, criar_cliente
+from emporio.complaints import Reclamacoes
 from emporio.config import PASTA_POLITICAS, carregar_config
 from emporio.policies import Politicas
 from emporio.session import SessionState
@@ -76,25 +77,32 @@ def _digitos(valor: str) -> str:
     return f"{int(inteiro or 0)},{(centavos or '00').ljust(2, '0')[:2]}"
 
 
-def _nova_conversa(repositorio) -> Conversa:
+def _nova_conversa(repositorio, arquivo, hora=10) -> Conversa:
     config = carregar_config("2026-02-20")
     agente = Agent(
         cliente=criar_cliente(config),
         config=config,
         registro=REGISTRO,
         repo=repositorio,
-        relogio=lambda: datetime(2026, 2, 20, 10, 0),
+        relogio=lambda: datetime(2026, 2, 20, hora, 0),
         politicas=Politicas(PASTA_POLITICAS),
+        reclamacoes=Reclamacoes(arquivo),
     )
     return Conversa(agente)
 
 
 @pytest.fixture
-def conversa(repo):
-    return _nova_conversa(repo)
+def conversa(repo, tmp_path):
+    return _nova_conversa(repo, tmp_path / "reclamacoes.jsonl")
 
 
 @pytest.fixture
-def conversa_incompleta(repo_fixture):
+def conversa_incompleta(repo_fixture, tmp_path):
     """Pedido sem previsão de entrega, caso ausente nos dados reais."""
-    return _nova_conversa(repo_fixture)
+    return _nova_conversa(repo_fixture, tmp_path / "reclamacoes.jsonl")
+
+
+@pytest.fixture
+def conversa_noite(repo, tmp_path):
+    """Sexta-feira às 20h, com a loja fechada."""
+    return _nova_conversa(repo, tmp_path / "reclamacoes.jsonl", hora=20)
