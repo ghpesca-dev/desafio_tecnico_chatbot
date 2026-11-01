@@ -97,6 +97,8 @@ Sempre fornecido com o `SessionState`, que o modelo não vê.
 }
 ```
 
+Fora de `ok`, a saída traz `orientacao`, com o texto que o agente deve seguir, e nenhum dado do pedido. `motivo_cancelamento` só vem preenchido em pedido cancelado, porque `notes` pode guardar anotações internas.
+
 `situacao` do prazo: `no_prazo`, `encerrado`, `indeterminado`, `nao_iniciado` ou `nao_se_aplica`. Com `indeterminado`, o agente não conclui e encaminha para a equipe. Os itens não trazem valor, porque a fonte não registra o preço pago por item.
 
 ## `consultar_politica`

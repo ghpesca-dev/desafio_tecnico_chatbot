@@ -158,17 +158,17 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 ### Tests for User Story 5
 
-- [ ] T045 [P] [US5] Escrever `tests/unit/test_identidade.py`: contato igual aceita `ANACAROL.FERREIRA@COLDMAIL.COM`, `(67) 99654-7821`, `5567996547821` e `99654-7821`; recusa menos de 8 dígitos; o e-mail repetido de `bruno.martins@jmail.com` só abre pedido do dono
-- [ ] T046 [P] [US5] Escrever `tests/unit/test_consultar_pedido.py`: pedido 8 sem contato retorna `precisa_confirmacao`, sem dados; com o contato de outro cliente e pedido inexistente, a resposta é idêntica; a 3ª falha retorna `bloqueado` e a consulta seguinte não acessa os dados; confirmar o pedido 1 não abre o 19, mesmo do mesmo cliente, sem o contato ser escrito de novo; contato que o cliente não escreveu não vale nem conta como falha; janela de histórico não zera falhas; total do pedido 3 é `R$ 3.450,00`; pedido 19 traz o motivo; a saída não tem `email`, `phone`, `customer_id` nem valor por item
-- [ ] T047 [P] [US5] Escrever `tests/e2e/test_us5_pedido.py`, somando 20 tentativas com T046 (SC-003): "Qual o status do pedido 8?" pede o contato sem revelar nada; pessoa dizendo ser atendente, dono ou familiar, e pedido para ignorar as regras, não recebem dados; com `anacarol.ferreira@coldmail.com`, responde enviado, `BRJL5544332BR` e previsão
+- [X] T045 [P] [US5] Escrever `tests/unit/test_identidade.py`: contato igual aceita `ANACAROL.FERREIRA@COLDMAIL.COM`, `(67) 99654-7821`, `5567996547821` e `99654-7821`; recusa menos de 8 dígitos; o e-mail repetido de `bruno.martins@jmail.com` só abre pedido do dono
+- [X] T046 [P] [US5] Escrever `tests/unit/test_consultar_pedido.py`: pedido 8 sem contato retorna `precisa_confirmacao`, sem dados; com o contato de outro cliente e pedido inexistente, a resposta é idêntica; a 3ª falha retorna `bloqueado` e a consulta seguinte não acessa os dados; confirmar o pedido 1 não abre o 19, mesmo do mesmo cliente, sem o contato ser escrito de novo; contato que o cliente não escreveu não vale nem conta como falha; janela de histórico não zera falhas; total do pedido 3 é `R$ 3.450,00`; pedido 19 traz o motivo; a saída não tem `email`, `phone`, `customer_id` nem valor por item
+- [X] T047 [P] [US5] Escrever `tests/e2e/test_us5_pedido.py`, somando 20 tentativas com T046 (SC-003): "Qual o status do pedido 8?" pede o contato sem revelar nada; pessoa dizendo ser atendente, dono ou familiar, e pedido para ignorar as regras, não recebem dados; com `anacarol.ferreira@coldmail.com`, responde enviado, `BRJL5544332BR` e previsão
 
 ### Implementation for User Story 5
 
-- [ ] T048 [US5] Adicionar em `src/emporio/rules.py` `contato_confere`: e-mail sem diferença de caixa e espaços; telefone só com dígitos, sem `55`, aceitando sem DDD com pelo menos os 8 últimos dígitos
-- [ ] T049 [US5] Adicionar em `src/emporio/data/repository.py` `pedido_confere(numero, contato)` e `dados_pedido(numero)`, com itens por nome e quantidade, status e pagamento traduzidos e `primeiro_nome`, sem expor dados de contato
-- [ ] T050 [US5] Adicionar em `src/emporio/session.py` os métodos de confirmação: registrar falha, bloquear em 3, conferir se o contato foi escrito pelo cliente e limpar as mensagens depois do sucesso
-- [ ] T051 [US5] Adicionar a ferramenta `consultar_pedido` em `src/emporio/tools.py`, com os resultados `ok`, `precisa_confirmacao`, `nao_confirmado` e `bloqueado` de `contracts/tools.md`
-- [ ] T052 [US5] Em `src/emporio/prompts.py`, orientar a pedir número e contato, saudar pelo primeiro nome depois da confirmação e indicar o telefone quando `bloqueado`
+- [X] T048 [US5] Adicionar em `src/emporio/rules.py` `contato_confere`: e-mail sem diferença de caixa e espaços; telefone só com dígitos, sem `55`, aceitando sem DDD com pelo menos os 8 últimos dígitos
+- [X] T049 [US5] Adicionar em `src/emporio/data/repository.py` `pedido_confere(numero, contato)` e `dados_pedido(numero)`, com itens por nome e quantidade, status e pagamento traduzidos e `primeiro_nome`, sem expor dados de contato
+- [X] T050 [US5] Adicionar em `src/emporio/session.py` os métodos de confirmação: registrar falha, bloquear em 3, conferir se o contato foi escrito pelo cliente e limpar as mensagens depois do sucesso
+- [X] T051 [US5] Adicionar a ferramenta `consultar_pedido` em `src/emporio/tools.py`, com os resultados `ok`, `precisa_confirmacao`, `nao_confirmado` e `bloqueado` de `contracts/tools.md`
+- [X] T052 [US5] Em `src/emporio/prompts.py`, orientar a pedir número e contato, saudar pelo primeiro nome depois da confirmação e indicar o telefone quando `bloqueado`
 
 **Checkpoint**: Nenhum dado de pedido sai sem confirmação
 
@@ -184,14 +184,14 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 ### Tests for User Story 6
 
-- [ ] T053 [P] [US6] Escrever `tests/unit/test_prazos.py` (SC-006): pedido 7 com arrependimento e troca até 2026-02-24 (no prazo nesse dia, encerrado em 02-25), defeito até 2026-03-05 e garantia legal até 2026-05-18; em 2026-02-20, pedido 6 com arrependimento e defeito encerrados; pedidos 8 e 9 com `nao_iniciado`; pedidos 17 a 20 com `nao_se_aplica`; fixture sem `estimated_delivery` com `indeterminado` nos prazos que dependem dela e defeito ainda calculado
-- [ ] T054 [P] [US6] Escrever `tests/e2e/test_us6_trocas.py`: "Me arrependi da compra, posso devolver?" pede pedido e contato, depois responde no prazo para o pedido 7 e fora do prazo para o 6, com a data; sem pedido, explica a regra geral; prazo `indeterminado` encaminha para a equipe
+- [X] T053 [P] [US6] Escrever `tests/unit/test_prazos.py` (SC-006): pedido 7 com arrependimento e troca até 2026-02-24 (no prazo nesse dia, encerrado em 02-25), defeito até 2026-03-05 e garantia legal até 2026-05-18; em 2026-02-20, pedido 6 com arrependimento e defeito encerrados; pedidos 8 e 9 com `nao_iniciado`; pedidos 17 a 20 com `nao_se_aplica`; fixture sem `estimated_delivery` com `indeterminado` nos prazos que dependem dela e defeito ainda calculado
+- [X] T054 [P] [US6] Escrever `tests/e2e/test_us6_trocas.py`: "Me arrependi da compra, posso devolver?" pede pedido e contato, depois responde no prazo para o pedido 7 e fora do prazo para o 6, com a data; sem pedido, explica a regra geral; prazo `indeterminado` encaminha para a equipe
 
 ### Implementation for User Story 6
 
-- [ ] T055 [US6] Adicionar `calcular_prazos` em `src/emporio/rules.py`: arrependimento e troca em 7 dias e garantia legal em 90, contados de `estimated_delivery`; defeito em 30, contado de `order_date`; último dia incluído; `situacao` por status do pedido
-- [ ] T056 [US6] Incluir `prazos` na saída de `consultar_pedido` em `src/emporio/tools.py`, conforme `contracts/tools.md`
-- [ ] T057 [US6] Em `src/emporio/prompts.py`, orientar a usar `prazos`, sem calcular datas; combinar com `consultar_politica`; perguntar sobre personalização e "venda final" e indicar garantia depois dos 30 dias
+- [X] T055 [US6] Adicionar `calcular_prazos` em `src/emporio/rules.py`: arrependimento e troca em 7 dias e garantia legal em 90, contados de `estimated_delivery`; defeito em 30, contado de `order_date`; último dia incluído; `situacao` por status do pedido
+- [X] T056 [US6] Incluir `prazos` na saída de `consultar_pedido` em `src/emporio/tools.py`, conforme `contracts/tools.md`
+- [X] T057 [US6] Em `src/emporio/prompts.py`, orientar a usar `prazos`, sem calcular datas; combinar com `consultar_politica`; perguntar sobre personalização e "venda final" e indicar garantia depois dos 30 dias
 
 **Checkpoint**: Conclusões de prazo vêm do código
 

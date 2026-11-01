@@ -76,15 +76,25 @@ def _digitos(valor: str) -> str:
     return f"{int(inteiro or 0)},{(centavos or '00').ljust(2, '0')[:2]}"
 
 
-@pytest.fixture
-def conversa(repo):
+def _nova_conversa(repositorio) -> Conversa:
     config = carregar_config("2026-02-20")
     agente = Agent(
         cliente=criar_cliente(config),
         config=config,
         registro=REGISTRO,
-        repo=repo,
+        repo=repositorio,
         relogio=lambda: datetime(2026, 2, 20, 10, 0),
         politicas=Politicas(PASTA_POLITICAS),
     )
     return Conversa(agente)
+
+
+@pytest.fixture
+def conversa(repo):
+    return _nova_conversa(repo)
+
+
+@pytest.fixture
+def conversa_incompleta(repo_fixture):
+    """Pedido sem previsão de entrega, caso ausente nos dados reais."""
+    return _nova_conversa(repo_fixture)

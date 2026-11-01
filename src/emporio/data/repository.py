@@ -1,12 +1,14 @@
 """Consultas aos dados. Nenhum método público devolve e-mail, telefone ou id de cliente."""
 
+import re
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 
 from rapidfuzz import fuzz, process
 
 from emporio.data.loader import Dados
-from emporio.rules import normalizar, preco_atual, situacao_produto
+from emporio.rules import contato_confere, normalizar, preco_atual, situacao_produto
 
 MAX_RESULTADOS_BUSCA = 10
 CORTE_CATEGORIA = 85
@@ -18,6 +20,15 @@ CORTE_PALAVRA = 85
 MARGEM_EMPATE = 5
 MAX_CANDIDATOS = 5
 MAX_ALTERNATIVAS = 3
+STATUS_PEDIDO = {
+    "pending": "pendente",
+    "confirmed": "confirmado",
+    "shipped": "enviado",
+    "delivered": "entregue",
+    "cancelled": "cancelado",
+}
+PAGAMENTO = {"pix": "PIX", "debit": "cartão de débito", "boleto": "boleto"}
+PRODUTO_SEM_NOME = "Produto não identificado"
 PALAVRAS_IGNORADAS = frozenset(
     "a as ao de do da dos das e em o os para instrumento outro todo".split()
 )
@@ -96,6 +107,34 @@ class ResultadoReferencia:
     candidatos: tuple[Produto, ...] = ()
 
 
+@dataclass(frozen=True)
+class ItemPedido:
+    nome: str
+    quantidade: int
+
+
+@dataclass(frozen=True)
+class Pedido:
+    numero: int
+    primeiro_nome: str | None
+    status: str
+    status_codigo: str
+    data_compra: date | None
+    total: Decimal | None
+    pagamento: str
+    rastreio: str | None
+    previsao_entrega: date | None
+    motivo_cancelamento: str | None
+    itens: tuple[ItemPedido, ...]
+
+
+def _traduzir_pagamento(codigo: str) -> str:
+    parcelado = re.fullmatch(r"credit_(\d+)x", codigo)
+    if parcelado:
+        return f"cartão de crédito em {parcelado.group(1)}x"
+    return PAGAMENTO.get(codigo, codigo)
+
+
 class Repository:
     def __init__(self, dados: Dados):
         self._categorias = {
@@ -107,6 +146,15 @@ class Repository:
             p.product_id: self._montar_produto(p)
             for p in dados.produtos.itertuples(index=False)
         }
+        self._clientes = {
+            c.customer_id: c for c in dados.clientes.itertuples(index=False)
+        }
+        self._pedidos = {
+            p.order_id: p for p in dados.pedidos.itertuples(index=False)
+        }
+        self._itens: dict[int, list] = {}
+        for item in dados.itens.itertuples(index=False):
+            self._itens.setdefault(item.order_id, []).append(item)
 
     def _promocao_ativa(self, produto_id: int) -> Promocao | None:
         linhas = self._promocoes[
@@ -340,6 +388,45 @@ class Repository:
         ]
         return ResultadoReferencia(
             "ambiguo", candidatos=tuple(proximos[:MAX_CANDIDATOS])
+        )
+
+    def pedido_confere(self, numero: int, contato: str) -> bool:
+        """Compara só com o dono do pedido: um e-mail se repete entre clientes."""
+        pedido = self._pedidos.get(numero)
+        cliente = self._clientes.get(pedido.customer_id) if pedido else None
+        if cliente is None:
+            return False
+        return contato_confere(contato, cliente.email, cliente.phone)
+
+    def dados_pedido(self, numero: int) -> Pedido | None:
+        """Dados para o cliente já confirmado, sem e-mail, telefone ou id."""
+        linha = self._pedidos.get(numero)
+        if linha is None:
+            return None
+        cliente = self._clientes.get(linha.customer_id)
+        nomes = cliente.name.split() if cliente else []
+        cancelado = linha.status == "cancelled"
+        return Pedido(
+            numero=linha.order_id,
+            primeiro_nome=nomes[0] if nomes else None,
+            status=STATUS_PEDIDO.get(linha.status, linha.status),
+            status_codigo=linha.status,
+            data_compra=linha.order_date,
+            total=linha.total_brl,
+            pagamento=_traduzir_pagamento(linha.payment_method),
+            rastreio=linha.tracking_code or None,
+            previsao_entrega=linha.estimated_delivery,
+            # `notes` pode guardar anotações internas: só o motivo sai daqui.
+            motivo_cancelamento=(linha.notes or None) if cancelado else None,
+            itens=tuple(
+                self._item_pedido(i) for i in self._itens.get(numero, [])
+            ),
+        )
+
+    def _item_pedido(self, item) -> ItemPedido:
+        produto = self.produto(item.product_id)
+        return ItemPedido(
+            produto.nome if produto else PRODUTO_SEM_NOME, item.quantity
         )
 
     def alternativas(self, produto: Produto) -> list[Produto]:

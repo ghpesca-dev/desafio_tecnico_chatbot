@@ -3,6 +3,10 @@
 import uuid
 from dataclasses import dataclass, field
 
+from emporio.rules import digitos_telefone
+
+LIMITE_FALHAS_CONFIRMACAO = 3
+
 
 @dataclass
 class SessionState:
@@ -15,6 +19,31 @@ class SessionState:
     def registrar_mensagem_cliente(self, texto: str) -> None:
         self.mensagens.append({"role": "user", "content": texto})
         self.mensagens_cliente_recentes.append(texto)
+
+    @property
+    def bloqueada(self) -> bool:
+        return self.falhas_confirmacao >= LIMITE_FALHAS_CONFIRMACAO
+
+    def registrar_falha_confirmacao(self) -> None:
+        self.falhas_confirmacao += 1
+
+    def cliente_escreveu(self, contato: str) -> bool:
+        """O contato precisa ter vindo do cliente, não do modelo.
+
+        Vale só o que foi escrito depois da última confirmação, para que um
+        pedido confirmado não abra outro sem o cliente repetir o dado.
+        """
+        texto = contato.strip().lower()
+        digitos = digitos_telefone(texto)
+        return bool(texto) and any(
+            texto in mensagem.lower()
+            or (digitos and digitos in digitos_telefone(mensagem))
+            for mensagem in self.mensagens_cliente_recentes
+        )
+
+    def confirmar_pedido(self, numero: int) -> None:
+        self.pedidos_confirmados.add(numero)
+        self.mensagens_cliente_recentes.clear()
 
     def cortar_janela(self, trocas: int) -> None:
         """Mantém as últimas trocas, sempre a partir de uma mensagem do cliente.

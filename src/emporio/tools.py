@@ -10,9 +10,14 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, Field, StringConstraints, ValidationError
 
-from emporio.data.repository import Produto, Repository
+from emporio.data.repository import Pedido, Produto, Repository
 from emporio.policies import Politicas, Topico
-from emporio.rules import calcular_pix, formatar_brl, formatar_percentual
+from emporio.rules import (
+    calcular_pix,
+    calcular_prazos,
+    formatar_brl,
+    formatar_percentual,
+)
 from emporio.session import SessionState
 
 logger = logging.getLogger("emporio.ferramentas")
@@ -278,6 +283,117 @@ def detalhes_produto(
         produto=_detalhar(produto),
         pagamento=_pagamento(produto),
         alternativas=[resumir_produto(p) for p in ctx.repo.alternativas(produto)],
+    )
+
+
+ORIENTACAO_PEDIDO = {
+    "precisa_confirmacao": (
+        "Peça o e-mail ou o telefone cadastrado no pedido, sem dizer se ele existe."
+    ),
+    "nao_confirmado": (
+        "Diga que não foi possível confirmar os dados, sem dizer se o pedido "
+        "existe, e peça para conferir o número e o contato."
+    ),
+    "bloqueado": (
+        "Diga que não dá para tentar de novo por aqui e indique o contato da "
+        "loja: (67) 3341-4444."
+    ),
+}
+
+
+class ArgsConsultarPedido(BaseModel):
+    numero_pedido: int = Field(description="Número do pedido.")
+    contato: str | None = Field(
+        None,
+        description=(
+            "E-mail ou telefone exatamente como o cliente escreveu. Omita se ele "
+            "não informou."
+        ),
+    )
+
+
+class ItemSaida(BaseModel):
+    nome: str
+    quantidade: int
+
+
+class PrazoSaida(BaseModel):
+    situacao: str
+    ate: date | None
+    base: str
+
+
+class PedidoSaida(BaseModel):
+    numero: int
+    primeiro_nome: str | None
+    status: str
+    data: date | None
+    total: str | None
+    pagamento: str
+    rastreio: str | None
+    previsao_entrega: date | None
+    motivo_cancelamento: str | None
+    itens: list[ItemSaida]
+    prazos: dict[str, PrazoSaida]
+
+
+class SaidaConsultarPedido(BaseModel):
+    resultado: str
+    pedido: PedidoSaida | None = None
+    orientacao: str | None = None
+
+
+def _negar(resultado: str) -> SaidaConsultarPedido:
+    return SaidaConsultarPedido(
+        resultado=resultado, orientacao=ORIENTACAO_PEDIDO[resultado]
+    )
+
+
+def _pedido_saida(pedido: Pedido, hoje: date) -> PedidoSaida:
+    prazos = calcular_prazos(
+        pedido.status_codigo, pedido.data_compra, pedido.previsao_entrega, hoje
+    )
+    return PedidoSaida(
+        numero=pedido.numero,
+        primeiro_nome=pedido.primeiro_nome,
+        status=pedido.status,
+        data=pedido.data_compra,
+        total=formatar_brl(pedido.total) if pedido.total is not None else None,
+        pagamento=pedido.pagamento,
+        rastreio=pedido.rastreio,
+        previsao_entrega=pedido.previsao_entrega,
+        motivo_cancelamento=pedido.motivo_cancelamento,
+        itens=[ItemSaida(nome=i.nome, quantidade=i.quantidade) for i in pedido.itens],
+        prazos={
+            nome: PrazoSaida(situacao=p.situacao, ate=p.ate, base=p.base)
+            for nome, p in prazos.items()
+        },
+    )
+
+
+@REGISTRO.ferramenta(
+    "consultar_pedido",
+    "Status, rastreio, previsão, itens e prazos de troca de um pedido. Só devolve "
+    "os dados depois de confirmar o e-mail ou o telefone do cadastro.",
+    ArgsConsultarPedido,
+)
+def consultar_pedido(args: ArgsConsultarPedido, ctx: Contexto) -> SaidaConsultarPedido:
+    """A ordem das verificações é a regra: nada aqui depende do modelo."""
+    sessao = ctx.sessao
+    numero = args.numero_pedido
+    if numero not in sessao.pedidos_confirmados:
+        if sessao.bloqueada:
+            return _negar("bloqueado")
+        contato = (args.contato or "").strip()
+        if not contato or not sessao.cliente_escreveu(contato):
+            return _negar("precisa_confirmacao")
+        if not ctx.repo.pedido_confere(numero, contato):
+            sessao.registrar_falha_confirmacao()
+            return _negar("bloqueado" if sessao.bloqueada else "nao_confirmado")
+        sessao.confirmar_pedido(numero)
+    return SaidaConsultarPedido(
+        resultado="ok",
+        pedido=_pedido_saida(ctx.repo.dados_pedido(numero), ctx.data_referencia),
     )
 
 
