@@ -1,0 +1,23 @@
+# Segredos
+.env
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+*.egg-info/
+
+# Dados gerados em execução (contêm dados pessoais)
+data/runtime/
+
+# Ferramentas e sistema
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/

@@ -1,0 +1,5 @@
+product_id,price_brl,name,category_id,description,stock_quantity,status,specs,created_at
+1,1000,Duas Promos Natural,1,Produto com duas promoções ativas,5,active,"{""top"":""Spruce""}",2024-01-01
+2,,Sem Preco Natural,1,Produto sem preço,5,active,{},2024-01-01
+3,500,Specs Quebrado Natural,1,Produto com JSON inválido,5,active,{nao-e-json,2024-01-01
+4,700,Categoria Quebrada Natural,99,Categoria inexistente,5,active,{},2024-01-01
