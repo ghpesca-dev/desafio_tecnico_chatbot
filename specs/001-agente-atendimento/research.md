@@ -26,6 +26,7 @@ Pesquisa feita em 2026-11-01. Foram verificados, nessa data, a lista pública de
 
 - **Decision**: Laço escrito à mão com limite de 6 iterações por turno. Se houver várias chamadas de ferramenta na mesma resposta, são executadas em sequência. Falha de LLM desfaz o turno no histórico, para não deixar chamada sem resultado. Se o limite for atingido, a resposta é o fallback com o telefone da loja.
 - **Rationale**: Transparente e fácil de testar com um cliente falso. O SDK já oferece retry (`max_retries=2`) e `timeout=30`, então não há retry próprio.
+- **Proteção adicionada após os testes reais**: Com `qwen/qwen3.5-9b`, o modelo encerrava o turno prometendo consultar, sem chamar ferramenta. Se a resposta traz essa promessa e nada foi consultado no turno, o laço repete a chamada uma vez com `tool_choice="required"`.
 - **Alternatives considered**: LangChain ou LangGraph, rejeitados pelo input: não há ramificação ou multiagente que justifique. RAG e text-to-SQL, rejeitados porque deixariam exatidão e controle de acesso nas mãos do modelo.
 
 ## R-04 Verificação de identidade no código

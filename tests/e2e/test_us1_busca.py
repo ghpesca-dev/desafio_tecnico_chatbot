@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_violoes_ate_1000(conversa, repo):
     resposta = conversa.enviar("Quais violões vocês têm até R$ 1000?")
 
@@ -9,9 +12,35 @@ def test_violoes_ate_1000(conversa, repo):
     assert "SN-7C" not in resposta
 
 
-def test_categoria_sem_produtos(conversa):
-    resposta = conversa.enviar("Vocês têm saxofone?")
+@pytest.mark.parametrize(
+    "pergunta",
+    ["Vocês têm saxofone?", "Tem flauta?", "Vocês vendem violino?"],
+)
+def test_categoria_sem_produtos(conversa, pergunta):
+    resposta = conversa.enviar(pergunta).lower()
 
     assert "buscar_produtos" in conversa.ferramentas
-    assert "momento" in resposta.lower()
-    assert "R$" not in resposta
+    assert "momento" in resposta
+    assert "r$" not in resposta
+    # Sopros e cordas orquestrais são instrumentos, não acessórios.
+    assert "exclusivamente" not in resposta
+    assert "só com instrumentos" not in resposta
+    assert "apenas com instrumentos" not in resposta
+
+
+def test_lista_nao_faz_afirmacao_sem_fonte(conversa):
+    resposta = conversa.enviar("Quais violões vocês têm até R$ 1000?").lower()
+
+    assert "mais vendid" not in resposta
+    assert "mais procurad" not in resposta
+    assert "12" in resposta  # total_encontrado
+
+
+def test_alternativa_em_promocao_mostra_preco_original(conversa):
+    conversa.enviar("Quanto custa o Takamine GD20?")
+    resposta = conversa.enviar("tem outro parecido?")
+
+    # Crafter HT-100, de R$ 2.399,00 por R$ 1.967,18.
+    if "1.967,18" in resposta:
+        assert "2.399,00" in resposta
+        assert "18%" in resposta

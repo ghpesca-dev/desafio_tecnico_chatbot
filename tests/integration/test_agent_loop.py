@@ -267,3 +267,49 @@ def test_log_mascara_contato(registro, caplog):
 
     assert "pedido" in caplog.text
     assert "maria@teste.com" not in caplog.text
+
+
+def test_promessa_sem_ferramenta_exige_consulta(registro):
+    cliente = ClienteFalso(
+        [
+            texto("Vou verificar para você, um minuto!"),
+            chamada(("eco", {"texto": "x"})),
+            texto("Pronto"),
+        ]
+    )
+    sessao = SessionState()
+
+    assert criar_agente(cliente, registro).responder(sessao, "oi") == "Pronto"
+
+    assert "tool_choice" not in cliente.pedidos[0]
+    assert cliente.pedidos[1]["tool_choice"] == "required"
+    assert "tool_choice" not in cliente.pedidos[2]
+    assert papeis(sessao) == ["user", "assistant", "tool", "assistant"]
+
+
+def test_exige_consulta_uma_unica_vez(registro):
+    cliente = ClienteFalso([texto("Vou olhar."), texto("Vou olhar de novo.")])
+
+    resposta = criar_agente(cliente, registro).responder(SessionState(), "oi")
+
+    assert resposta == "Vou olhar de novo."
+    assert len(cliente.pedidos) == 2
+
+
+def test_promessa_depois_de_consultar_nao_repete(registro):
+    cliente = ClienteFalso(
+        [chamada(("eco", {"texto": "x"})), texto("Vou conferir com a equipe.")]
+    )
+
+    resposta = criar_agente(cliente, registro).responder(SessionState(), "oi")
+
+    assert resposta == "Vou conferir com a equipe."
+    assert len(cliente.pedidos) == 2
+
+
+def test_oferta_de_ajuda_nao_e_promessa(registro):
+    cliente = ClienteFalso([texto("Posso buscar outro modelo, quer que eu veja?")])
+
+    criar_agente(cliente, registro).responder(SessionState(), "oi")
+
+    assert len(cliente.pedidos) == 1

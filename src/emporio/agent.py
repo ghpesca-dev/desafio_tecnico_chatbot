@@ -2,6 +2,7 @@
 
 import json
 import logging
+import re
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -23,6 +24,15 @@ FALLBACK = (
     "contato@emporiodamusica.com.br."
 )
 CAMPOS_MASCARADOS = {"contato"}
+
+# O turno termina na mensagem: quem promete consultar sem chamar uma ferramenta
+# deixa o cliente sem resposta. O prompt reduz isso, mas não garante.
+PROMESSA_DE_CONSULTA = re.compile(
+    r"\b(vou|deixa eu|deixe-me)\s+(te\s+)?"
+    r"(verificar|consultar|checar|conferir|olhar|buscar|procurar|ver)\b"
+    r"|\bum (minuto|minutinho|instante|momento)\b",
+    re.IGNORECASE,
+)
 
 
 def criar_cliente(config: Config) -> openai.OpenAI:
@@ -71,9 +81,13 @@ class Agent:
         # Calculada depois do corte, que muda os índices do histórico.
         marca = sessao.marca() - 1
 
+        consultou = False
+        exigir_ferramenta = False
+        ja_exigiu = False
+
         for _ in range(self._config.max_iteracoes):
             try:
-                mensagem = self._chamar_llm(sessao)
+                mensagem = self._chamar_llm(sessao, exigir_ferramenta)
             except (openai.OpenAIError, ValueError) as erro:
                 logger.warning(
                     "Falha na chamada ao LLM: %s",
@@ -88,16 +102,26 @@ class Agent:
                 if not conteudo:
                     sessao.desfazer_ate(marca)
                     return FALLBACK
+                if (
+                    not consultou
+                    and not ja_exigiu
+                    and PROMESSA_DE_CONSULTA.search(conteudo)
+                ):
+                    logger.debug("Promessa de consulta sem ferramenta: repetindo")
+                    exigir_ferramenta = ja_exigiu = True
+                    continue
                 sessao.mensagens.append({"role": "assistant", "content": conteudo})
                 return conteudo
 
             self._executar_chamadas(sessao, mensagem)
+            consultou = True
+            exigir_ferramenta = False
 
         logger.warning("Limite de %s iterações atingido", self._config.max_iteracoes)
         sessao.mensagens.append({"role": "assistant", "content": FALLBACK})
         return FALLBACK
 
-    def _chamar_llm(self, sessao: SessionState):
+    def _chamar_llm(self, sessao: SessionState, exigir_ferramenta: bool = False):
         system = montar_system_prompt(self._relogio())
         parametros = {
             "model": self._config.modelo,
@@ -110,6 +134,8 @@ class Agent:
             parametros["tools"] = ferramentas
         if self._config.temperatura is not None:
             parametros["temperature"] = self._config.temperatura
+        if exigir_ferramenta and ferramentas:
+            parametros["tool_choice"] = "required"
 
         resposta = self._cliente.chat.completions.create(**parametros)
         if not resposta.choices:

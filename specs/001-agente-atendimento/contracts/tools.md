@@ -22,7 +22,9 @@ Retorna apenas produtos disponíveis, por menor preço, até 10.
   "produtos": [{
     "id": 12, "nome": "...", "categoria": "Violões",
     "preco_atual": "R$ 899,00", "preco_original": "R$ 999,00",
-    "desconto_percentual": "10%", "promocao": "...", "disponivel": true
+    "desconto_percentual": "10%",
+    "preco_exibicao": "R$ 899,00 (de R$ 999,00, 10% de desconto)",
+    "promocao": "...", "disponivel": true
   }],
   "promocao_encontrada": null
 }
@@ -58,6 +60,8 @@ Retorna apenas produtos disponíveis, por menor preço, até 10.
 - `situacao` segue o [modelo de dados](../data-model.md). `a_venda` só é verdadeiro com `disponivel`. `pagamento` é `null` com `em_breve`, `fora_de_catalogo` e `sem_informacao`.
 - `alternativas`: até 3 produtos disponíveis da mesma categoria, com preço mais próximo.
 - Com promoção ativa, `pix` é o preço promocional e `pix_nao_acumula` é verdadeiro.
+
+Sem resultado, `buscar_produtos` e `detalhes_produto` devolvem `orientacao`, com o texto a seguir e o contato da loja.
 
 ## `consultar_pedido`
 

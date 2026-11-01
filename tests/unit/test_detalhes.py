@@ -109,6 +109,11 @@ def test_produto_inexistente(detalhes):
     assert resultado["resultado"] == "nao_encontrado"
     assert resultado["produto"] is None
     assert resultado["alternativas"] == []
+    assert "(67) 3341-4444" in resultado["orientacao"]
+
+
+def test_encontrado_nao_traz_orientacao(detalhes):
+    assert detalhes("95")["orientacao"] is None
 
 
 def test_id_inexistente(detalhes):

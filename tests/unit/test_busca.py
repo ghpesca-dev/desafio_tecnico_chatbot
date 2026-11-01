@@ -91,6 +91,7 @@ def test_promocao_mostra_original_e_percentual(buscar):
     assert item["preco_original"] == "R$ 549,00"
     assert item["desconto_percentual"] == "20%"
     assert item["promocao"] == "Desconto Exclusivo"
+    assert item["preco_exibicao"] == "R$ 439,20 (de R$ 549,00, 20% de desconto)"
 
 
 def test_sem_promocao_campos_nulos(buscar):
@@ -99,6 +100,7 @@ def test_sem_promocao_campos_nulos(buscar):
     )
     assert item["preco_original"] is None
     assert item["desconto_percentual"] is None
+    assert item["preco_exibicao"] == item["preco_atual"]
 
 
 def test_nao_mostra_quantidade_em_estoque(buscar):
@@ -157,6 +159,7 @@ def test_faixa_sem_resultado(buscar):
     resultado = buscar(categoria="violão", preco_max=1)
     assert resultado["total_encontrado"] == 0
     assert resultado["categoria_sem_itens"] is False
+    assert "(67) 3341-4444" in resultado["orientacao"]
 
 
 def test_preco_em_texto_e_argumento_invalido_vira_erro(buscar):

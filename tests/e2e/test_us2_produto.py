@@ -27,11 +27,12 @@ def test_descontinuado(conversa):
 
 
 def test_em_breve(conversa):
-    resposta = conversa.enviar("Quero o Kala KA-ABP-CTG")
-    assert "disponível" in resposta.lower()
+    resposta = conversa.enviar("Quero o Kala KA-ABP-CTG").lower()
+    assert "em breve" in resposta or "ainda não" in resposta
 
 
 def test_produto_inexistente_oferece_contato(conversa):
     resposta = conversa.enviar("Quanto custa a Gibson Flying V Zebrada?")
     assert "3341-4444" in resposta
+    assert "no momento" not in resposta.lower()
     conversa.auditar_valores(resposta)

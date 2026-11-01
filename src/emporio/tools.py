@@ -90,6 +90,11 @@ class Registro:
 
 REGISTRO = Registro()
 
+ORIENTACAO_NAO_ENCONTRADO = (
+    "Diga que não encontrou no catálogo, sem supor o motivo, e ofereça o "
+    "contato da loja: (67) 3341-4444."
+)
+
 
 class ProdutoResumo(BaseModel):
     id: int
@@ -98,21 +103,30 @@ class ProdutoResumo(BaseModel):
     preco_atual: str
     preco_original: str | None
     desconto_percentual: str | None
+    preco_exibicao: str
     promocao: str | None
     disponivel: bool
 
 
 def resumir_produto(produto: Produto) -> ProdutoResumo:
     promocao = produto.promocao_ativa
+    atual = formatar_brl(produto.preco_atual)
+    exibicao = atual
+    if promocao:
+        exibicao = (
+            f"{atual} (de {formatar_brl(produto.preco)}, "
+            f"{formatar_percentual(promocao.desconto)} de desconto)"
+        )
     return ProdutoResumo(
         id=produto.id,
         nome=produto.nome,
         categoria=produto.categoria,
-        preco_atual=formatar_brl(produto.preco_atual),
+        preco_atual=atual,
         preco_original=formatar_brl(produto.preco) if promocao else None,
         desconto_percentual=(
             formatar_percentual(promocao.desconto) if promocao else None
         ),
+        preco_exibicao=exibicao,
         promocao=promocao.nome if promocao else None,
         disponivel=produto.situacao == "disponivel",
     )
@@ -133,6 +147,7 @@ class SaidaBuscarProdutos(BaseModel):
     categoria_resolvida: str | None
     categoria_sem_itens: bool
     produtos: list[ProdutoResumo]
+    orientacao: str | None = None
 
 
 @REGISTRO.ferramenta(
@@ -153,6 +168,11 @@ def buscar_produtos(args: ArgsBuscarProdutos, ctx: Contexto) -> SaidaBuscarProdu
         categoria_resolvida=", ".join(c.nome for c in resultado.categorias) or None,
         categoria_sem_itens=resultado.categoria_sem_itens,
         produtos=[resumir_produto(p) for p in resultado.produtos],
+        orientacao=(
+            ORIENTACAO_NAO_ENCONTRADO
+            if not resultado.total and not resultado.categoria_sem_itens
+            else None
+        ),
     )
 
 
@@ -196,6 +216,7 @@ class SaidaDetalhesProduto(BaseModel):
     pagamento: Pagamento | None = None
     candidatos: list[Candidato] = []
     alternativas: list[ProdutoResumo] = []
+    orientacao: str | None = None
 
 
 def _detalhar(produto: Produto) -> ProdutoDetalhe:
@@ -245,6 +266,11 @@ def detalhes_produto(
             candidatos=[
                 Candidato(id=p.id, nome=p.nome) for p in encontrado.candidatos
             ],
+            orientacao=(
+                ORIENTACAO_NAO_ENCONTRADO
+                if encontrado.tipo == "nao_encontrado"
+                else None
+            ),
         )
     produto = encontrado.produto
     return SaidaDetalhesProduto(
