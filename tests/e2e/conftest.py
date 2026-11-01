@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 from emporio.agent import Agent, criar_cliente
-from emporio.config import carregar_config
+from emporio.config import PASTA_POLITICAS, carregar_config
+from emporio.policies import Politicas
 from emporio.session import SessionState
 from emporio.tools import REGISTRO
 
@@ -81,5 +82,6 @@ def conversa(repo):
         registro=REGISTRO,
         repo=repo,
         relogio=lambda: datetime(2026, 2, 20, 10, 0),
+        politicas=Politicas(PASTA_POLITICAS),
     )
     return Conversa(agente)

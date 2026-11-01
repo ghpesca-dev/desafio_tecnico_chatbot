@@ -10,6 +10,7 @@ import openai
 
 from emporio.config import BASE_URL, Config
 from emporio.data.repository import Repository
+from emporio.policies import Politicas
 from emporio.prompts import montar_system_prompt
 from emporio.session import SessionState
 from emporio.tools import Contexto, Registro
@@ -55,12 +56,14 @@ class Agent:
         registro: Registro,
         repo: Repository | None,
         relogio: Callable[[], datetime],
+        politicas: Politicas | None = None,
     ):
         self._cliente = cliente
         self._config = config
         self._registro = registro
         self._repo = repo
         self._relogio = relogio
+        self._politicas = politicas
 
     def responder(self, sessao: SessionState, texto: str) -> str:
         sessao.registrar_mensagem_cliente(texto)
@@ -71,8 +74,12 @@ class Agent:
         for _ in range(self._config.max_iteracoes):
             try:
                 mensagem = self._chamar_llm(sessao)
-            except (openai.OpenAIError, ValueError):
-                logger.exception("Falha na chamada ao LLM")
+            except (openai.OpenAIError, ValueError) as erro:
+                logger.warning(
+                    "Falha na chamada ao LLM: %s",
+                    type(erro).__name__,
+                    exc_info=logger.isEnabledFor(logging.DEBUG),
+                )
                 sessao.desfazer_ate(marca)
                 return FALLBACK
 
@@ -127,7 +134,9 @@ class Agent:
                 ],
             }
         )
-        contexto = Contexto(self._repo, sessao, self._relogio().date())
+        contexto = Contexto(
+            self._repo, sessao, self._relogio().date(), self._politicas
+        )
         for chamada in mensagem.tool_calls:
             inicio = time.perf_counter()
             resultado = self._registro.despachar(

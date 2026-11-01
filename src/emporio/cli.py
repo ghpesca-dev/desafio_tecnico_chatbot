@@ -10,12 +10,14 @@ from rich.markdown import Markdown
 from emporio.agent import Agent, criar_cliente
 from emporio.config import (
     PASTA_DADOS,
+    PASTA_POLITICAS,
     ConfiguracaoInvalida,
     carregar_config,
     criar_relogio,
 )
 from emporio.data.loader import DadosInvalidos, carregar_dados
 from emporio.data.repository import Repository
+from emporio.policies import Politicas, PoliticasInvalidas
 from emporio.session import SessionState
 from emporio.tools import REGISTRO
 
@@ -46,6 +48,7 @@ def criar_agente(data_cli: str | None) -> Agent:
         registro=REGISTRO,
         repo=Repository(carregar_dados(PASTA_DADOS)),
         relogio=criar_relogio(config.data_referencia),
+        politicas=Politicas(PASTA_POLITICAS),
     )
 
 
@@ -71,8 +74,10 @@ def conversar(agente: Agent, console: Console) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = criar_parser().parse_args(argv)
+    # Avisos de dados e falhas tratadas só interessam em depuração: o cliente
+    # recebe a mensagem amigável.
     logging.basicConfig(
-        level=logging.WARNING,
+        level=logging.ERROR,
         format="%(levelname)s %(name)s: %(message)s",
         stream=sys.stderr,
     )
@@ -81,7 +86,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         agente = criar_agente(args.data)
-    except (ConfiguracaoInvalida, DadosInvalidos) as erro:
+    except (ConfiguracaoInvalida, DadosInvalidos, PoliticasInvalidas) as erro:
         print(f"Erro: {erro}", file=sys.stderr)
         return 1
 

@@ -11,6 +11,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel, Field, StringConstraints, ValidationError
 
 from emporio.data.repository import Produto, Repository
+from emporio.policies import Politicas, Topico
 from emporio.rules import calcular_pix, formatar_brl, formatar_percentual
 from emporio.session import SessionState
 
@@ -24,6 +25,7 @@ class Contexto:
     repo: Repository | None
     sessao: SessionState
     data_referencia: date
+    politicas: Politicas | None = None
 
 
 @dataclass(frozen=True)
@@ -250,4 +252,27 @@ def detalhes_produto(
         produto=_detalhar(produto),
         pagamento=_pagamento(produto),
         alternativas=[resumir_produto(p) for p in ctx.repo.alternativas(produto)],
+    )
+
+
+class ArgsConsultarPolitica(BaseModel):
+    topico: Topico = Field(description="Seção do manual da loja.")
+
+
+class SaidaConsultarPolitica(BaseModel):
+    topico: str
+    texto: str
+
+
+@REGISTRO.ferramenta(
+    "consultar_politica",
+    "Devolve uma seção do manual: dados da loja, horário, pagamento, trocas, "
+    "frete, promoções, atendimento, garantia ou privacidade.",
+    ArgsConsultarPolitica,
+)
+def consultar_politica(
+    args: ArgsConsultarPolitica, ctx: Contexto
+) -> SaidaConsultarPolitica:
+    return SaidaConsultarPolitica(
+        topico=args.topico, texto=ctx.politicas.texto(args.topico)
     )

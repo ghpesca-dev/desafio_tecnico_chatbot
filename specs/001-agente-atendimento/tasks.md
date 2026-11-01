@@ -110,16 +110,16 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 ### Tests for User Story 3
 
-- [ ] T031 [P] [US3] Escrever `tests/unit/test_policies.py`: os 9 tópicos existem e não estão vazios; nenhum contém `3321-4500`, `empóriodamusica` ou `mais de 300`; `(67) 3341-4444` e `Rua 14 de Maio, 3200` estão em `loja`; `pagamento` não diz que toda compra parcelada exige R$ 100; tópico inválido retorna erro
-- [ ] T032 [P] [US3] Escrever `tests/e2e/test_us3_loja.py`: "Qual o endereço da loja?" chama só `consultar_politica`; horário, frete e garantia coincidem com o manual; frete por CEP não informa valor exato
+- [X] T031 [P] [US3] Escrever `tests/unit/test_policies.py`: os 9 tópicos existem e não estão vazios; nenhum contém `3321-4500`, `empóriodamusica` ou `mais de 300`; `(67) 3341-4444` e `Rua 14 de Maio, 3200` estão em `loja`; `pagamento` não diz que toda compra parcelada exige R$ 100; tópico inválido retorna erro
+- [X] T032 [P] [US3] Escrever `tests/e2e/test_us3_loja.py`: "Qual o endereço da loja?" chama só `consultar_politica`; horário, frete e garantia coincidem com o manual; frete por CEP não informa valor exato
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Implementar `scripts/extract_policies.py` com `pdfplumber`, separando por seção conforme o mapa de R-08 e aplicando as 4 substituições explícitas de R-08
-- [ ] T034 [US3] Rodar `scripts/extract_policies.py`, revisar as tabelas e versionar os 9 arquivos em `data/processed/politicas/`
-- [ ] T035 [US3] Implementar `src/emporio/policies.py`: carregar os 9 arquivos e falhar na inicialização se algum faltar ou estiver vazio
-- [ ] T036 [US3] Adicionar a ferramenta `consultar_politica` em `src/emporio/tools.py`, com `enum` de tópicos
-- [ ] T037 [US3] Em `src/emporio/prompts.py`, mapear perguntas para tópicos e exigir `consultar_politica` para dados da loja, sem usar ferramentas de produto
+- [X] T033 [US3] Implementar `scripts/extract_policies.py` com `pdfplumber`, separando por seção conforme o mapa de R-08 e aplicando as 4 substituições explícitas de R-08
+- [X] T034 [US3] Rodar `scripts/extract_policies.py`, revisar as tabelas e versionar os 9 arquivos em `data/processed/politicas/`
+- [X] T035 [US3] Implementar `src/emporio/policies.py`: carregar os 9 arquivos e falhar na inicialização se algum faltar ou estiver vazio
+- [X] T036 [US3] Adicionar a ferramenta `consultar_politica` em `src/emporio/tools.py`, com `enum` de tópicos
+- [X] T037 [US3] Em `src/emporio/prompts.py`, mapear perguntas para tópicos e exigir `consultar_politica` para dados da loja, sem usar ferramentas de produto
 
 **Checkpoint**: MVP completo: produtos e informações da loja
 
