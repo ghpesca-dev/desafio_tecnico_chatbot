@@ -123,7 +123,7 @@ Um dado que o cliente não escreveu depois da última confirmação não vale ne
 | `sessao_id` | Texto |
 | `resumo` | Obrigatório, não vazio |
 | `contato` | Obrigatório, não vazio |
-| `nome`, `pedido` | Opcionais |
+| `nome`, `pedido` | Opcionais; número do pedido informado pelo cliente, sem conferência |
 
 Só acrescenta registros. Dados pessoais: arquivo fora do Git.
 

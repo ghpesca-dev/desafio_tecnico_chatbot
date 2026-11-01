@@ -17,6 +17,7 @@ Pesquisa feita em 2026-11-01. Foram verificados, nessa data, a lista pública de
 
 ## R-02 Modelo e parâmetros do LLM
 
+- **Decisão revista**: O padrão passou a ser `anthropic/claude-haiku-5.5`, depois dos testes com modelo real registrados no README. O Sonnet não foi medido, por limite de crédito.
 - **Decision**: Padrão `OPENROUTER_MODEL=anthropic/claude-sonnet-5.5`. `anthropic/claude-haiku-5.5` é a alternativa barata a medir na suíte. Enviar `extra_body={"provider": {"require_parameters": true}}`. Temperatura em `OPENROUTER_TEMPERATURE`, opcional e não enviada por padrão.
 - **Rationale**: Os dois modelos listam `tools` e `tool_choice`. Preços listados por 1 milhão de tokens: Sonnet 5.5 a US$ 2 na entrada e US$ 10 na saída; Haiku 5.5 a US$ 0,10 e US$ 0,50. Nenhum dos dois, nem o Opus 5.5 ou os GPT 6.x consultados, lista `temperature`. A documentação diz que `require_parameters` exclui provedores sem suporte a algum parâmetro enviado, e que, sem ele, um parâmetro de ferramentas pode ser ignorado quando nenhum provedor o suporta. Por isso, enviar `temperature` com essa opção poderia excluir os provedores do modelo; por inferência da regra geral, pois a documentação não cita esse parâmetro nem o que ocorre quando nenhum provedor sobra.
 - **Alternatives considered**: `require_parameters` falso, rejeitado porque um modelo sem ferramentas responderia sem consultar as fontes, violando FR-003. Gemini 4 Argon, que aceita `temperature`, fica como opção por variável de ambiente, sem vantagem que justifique ser o padrão.
@@ -26,6 +27,7 @@ Pesquisa feita em 2026-11-01. Foram verificados, nessa data, a lista pública de
 
 - **Decision**: Laço escrito à mão com limite de 6 iterações por turno. Se houver várias chamadas de ferramenta na mesma resposta, são executadas em sequência. Falha de LLM desfaz o turno no histórico, para não deixar chamada sem resultado. Se o limite for atingido, a resposta é o fallback com o telefone da loja.
 - **Rationale**: Transparente e fácil de testar com um cliente falso. O SDK já oferece retry (`max_retries=2`) e `timeout=30`, então não há retry próprio.
+- **Limite total adicionado após os testes reais**: Cada chamada ao LLM tem 60 s no total, porque o `timeout` do cliente vale por leitura.
 - **Proteção adicionada após os testes reais**: Com `qwen/qwen3.5-9b`, o modelo encerrava o turno prometendo consultar, sem chamar ferramenta. Se a resposta traz essa promessa e nada foi consultado no turno, o laço repete a chamada uma vez com `tool_choice="required"`.
 - **Alternatives considered**: LangChain ou LangGraph, rejeitados pelo input: não há ramificação ou multiagente que justifique. RAG e text-to-SQL, rejeitados porque deixariam exatidão e controle de acesso nas mãos do modelo.
 

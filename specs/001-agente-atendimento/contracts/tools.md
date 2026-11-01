@@ -50,6 +50,7 @@ Retorna apenas produtos disponíveis, por menor preço, até 10.
   "pagamento": {
     "pix": "R$ 949,05", "pix_nao_acumula": false,
     "parcelas": [{"vezes": 1, "valor": "R$ 999,00"}],
+    "parcelas_sem_juros": true,
     "max_parcelas": 9
   },
   "alternativas": []
@@ -117,4 +118,4 @@ Retorna `{"topico": "...", "texto": "..."}`.
 | `contato` | texto | Sim | Não vazio |
 | `nome`, `numero_pedido` | texto, inteiro | Não | |
 
-Retorna `{"registrada": true, "protocolo": "..."}`. Em falha, retorna `{"registrada": false}`, e o agente passa o telefone, sem prometer retorno.
+Retorna `{"registrada": true, "protocolo": "..."}`. Em falha, retorna `{"registrada": false, "protocolo": null}`, e o agente passa o telefone, sem prometer retorno.

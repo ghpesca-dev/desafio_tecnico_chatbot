@@ -1,6 +1,6 @@
 # Quickstart: Validação do Agente
 
-Guia para provar que a funcionalidade funciona de ponta a ponta. Descreve o estado esperado depois da implementação; nada disto pode ser executado ainda. Detalhes em [contrato da CLI](contracts/cli.md), [ferramentas](contracts/tools.md) e [modelo de dados](data-model.md).
+Guia para provar que a funcionalidade funciona de ponta a ponta. Detalhes em [contrato da CLI](contracts/cli.md), [ferramentas](contracts/tools.md) e [modelo de dados](data-model.md).
 
 ## Pré-requisitos
 
@@ -60,7 +60,7 @@ uv run emporio reclamacoes
 uv run pytest -m e2e
 ```
 
-**Esperado**: Os 7 cenários de aceite passam em 3 execuções seguidas, pois o LLM não é determinístico. A suíte confere as ferramentas chamadas, os valores da resposta e se todo valor em reais veio de uma ferramenta ou do cliente.
+**Esperado**: Todos os cenários passam, incluindo os 7 de aceite. Repita a suíte, pois o LLM não é determinístico. A suíte confere as ferramentas chamadas, os valores da resposta e se todo valor em reais veio de uma ferramenta ou do cliente.
 
 ## Critérios de sucesso
 

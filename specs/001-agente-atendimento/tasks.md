@@ -135,16 +135,16 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 ### Tests for User Story 4
 
-- [ ] T038 [P] [US4] Escrever `tests/unit/test_parcelamento.py`, com ao menos 20 casos (SC-004): R$ 2.199,00 permite 12x; R$ 323,10 permite 4x; R$ 439,20 permite 5x; R$ 159,90 permite 3x; R$ 599,90 permite 6x; R$ 800,00 permite 8x; R$ 90,00 permite 1x; a comparação usa o valor antes de arredondar; 2x e 3x exigem R$ 50
-- [ ] T039 [P] [US4] Escrever `tests/unit/test_promocoes.py`: 4 produtos com promoção ativa; fixture com duas ativas usa o maior desconto; 95 sem promoção ativa traz encerrada `Oferta Especial`; 96 traz a de `promotion_id` 22; `em_promocao` lista 90, 94, 121 e 127; "Black Friday" retorna `ativa` falso
-- [ ] T040 [P] [US4] Escrever `tests/e2e/test_us4_pagamento.py`: preço promocional aparece com original e percentual; PIX não acumula e o agente explica; parcelamento impossível indica o máximo; promoção encerrada é informada com o preço atual
+- [X] T038 [P] [US4] Escrever `tests/unit/test_parcelamento.py`, com ao menos 20 casos (SC-004): R$ 2.199,00 permite 12x; R$ 323,10 permite 4x; R$ 439,20 permite 5x; R$ 159,90 permite 3x; R$ 599,90 permite 6x; R$ 800,00 permite 8x; R$ 90,00 permite 1x; a comparação usa o valor antes de arredondar; 2x e 3x exigem R$ 50
+- [X] T039 [P] [US4] Escrever `tests/unit/test_promocoes.py`: 4 produtos com promoção ativa; fixture com duas ativas usa o maior desconto; 95 sem promoção ativa traz encerrada `Oferta Especial`; 96 traz a de `promotion_id` 22; `em_promocao` lista 90, 94, 121 e 127; "Black Friday" retorna `ativa` falso
+- [X] T040 [P] [US4] Escrever `tests/e2e/test_us4_pagamento.py`: preço promocional aparece com original e percentual; PIX não acumula e o agente explica; parcelamento impossível indica o máximo; promoção encerrada é informada com o preço atual
 
 ### Implementation for User Story 4
 
-- [ ] T041 [US4] Adicionar `tabela_parcelas` em `src/emporio/rules.py`: "1x sem mínimo; 2x e 3x com mínimo de R$ 50; 4x a 6x com mínimo de R$ 80; 7x a 12x com mínimo de R$ 100", sobre o preço atual
-- [ ] T042 [US4] Completar `detalhes_produto` em `src/emporio/tools.py` com `parcelas`, `max_parcelas` e `promocao_encerrada`
-- [ ] T043 [US4] Adicionar `em_promocao` e `promocao_encontrada` em `src/emporio/data/repository.py` e na ferramenta `buscar_produtos` em `src/emporio/tools.py`
-- [ ] T044 [US4] Em `src/emporio/prompts.py`, orientar a transparência sobre promoção encerrada, sem prometer desconto
+- [X] T041 [US4] Adicionar `tabela_parcelas` em `src/emporio/rules.py`: "1x sem mínimo; 2x e 3x com mínimo de R$ 50; 4x a 6x com mínimo de R$ 80; 7x a 12x com mínimo de R$ 100", sobre o preço atual
+- [X] T042 [US4] Completar `detalhes_produto` em `src/emporio/tools.py` com `parcelas`, `max_parcelas` e `promocao_encerrada`
+- [X] T043 [US4] Adicionar `em_promocao` e `promocao_encontrada` em `src/emporio/data/repository.py` e na ferramenta `buscar_produtos` em `src/emporio/tools.py`
+- [X] T044 [US4] Em `src/emporio/prompts.py`, orientar a transparência sobre promoção encerrada, sem prometer desconto
 
 **Checkpoint**: Valores de pagamento conferem ao centavo
 
@@ -205,9 +205,9 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 **Depende de**: US2
 
-- [ ] T058 [P] [US7] Escrever `tests/integration/test_sessoes.py`: duas sessões não compartilham histórico nem confirmações
-- [ ] T059 [P] [US7] Escrever `tests/e2e/test_us7_seguimento.py` com 10 conversas (SC-007): "e no PIX?" responde sobre o mesmo produto; "tem outro parecido?" usa `alternativas`, só com disponíveis
-- [ ] T060 [US7] Ajustar `src/emporio/prompts.py` e, se T058 falhar, `src/emporio/agent.py`, para resolver referências da conversa e chamar a ferramenta de novo quando o resultado sair da janela
+- [X] T058 [P] [US7] Escrever `tests/integration/test_sessoes.py`: duas sessões não compartilham histórico nem confirmações
+- [X] T059 [P] [US7] Escrever `tests/e2e/test_us7_seguimento.py` com 10 conversas (SC-007): "e no PIX?" responde sobre o mesmo produto; "tem outro parecido?" usa `alternativas`, só com disponíveis
+- [X] T060 [US7] Ajustar `src/emporio/prompts.py` e, se T058 falhar, `src/emporio/agent.py`, para resolver referências da conversa e chamar a ferramenta de novo quando o resultado sair da janela
 
 **Checkpoint**: Seguimentos funcionam sem repetir contexto
 
@@ -219,8 +219,8 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 **Independent Test**: Pedidos de acessórios, assuntos alheios e ações fora de escopo
 
-- [ ] T061 [P] [US8] Escrever `tests/e2e/test_us8_escopo.py`: "Vocês vendem cordas de guitarra?" redireciona; "cordas" sozinho esclarece se é acessório ou instrumento; receita de bolo é recusada; fechar venda, cancelar pedido e calcular frete por CEP são recusados com orientação; nenhuma loja parceira é inventada
-- [ ] T062 [US8] Completar em `src/emporio/prompts.py` as regras e exemplos de escopo: lista de acessórios do FR-034, recusa educada, ações proibidas do FR-040 e resposta em português para outros idiomas
+- [X] T061 [P] [US8] Escrever `tests/e2e/test_us8_escopo.py`: "Vocês vendem cordas de guitarra?" redireciona; "cordas" sozinho esclarece se é acessório ou instrumento; receita de bolo é recusada; fechar venda, cancelar pedido e calcular frete por CEP são recusados com orientação; nenhuma loja parceira é inventada
+- [X] T062 [US8] Completar em `src/emporio/prompts.py` as regras e exemplos de escopo: lista de acessórios do FR-034, recusa educada, ações proibidas do FR-040 e resposta em português para outros idiomas
 
 **Checkpoint**: Cenários de escopo passam
 
@@ -232,12 +232,12 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 **Independent Test**: Reclamação registrada e consultada; pergunta fora do manual encaminhada
 
-- [ ] T063 [P] [US9] Escrever `tests/unit/test_complaints.py` com diretório temporário: grava campos de `data-model.md`; "`resumo` obrigatório, não vazio" e "`contato` obrigatório, não vazio"; falha de escrita retorna `registrada` falso; listagem da mais recente para a mais antiga
-- [ ] T064 [P] [US9] Escrever `tests/e2e/test_us9_reclamacao.py`: reclamação recebe empatia, pede contato antes de registrar e informa 24 horas úteis; pergunta não coberta encaminha para o telefone oficial; às 20h, informa a volta da equipe às 9h do dia seguinte
-- [ ] T065 [US9] Implementar `src/emporio/complaints.py`, gravando em `data/runtime/reclamacoes.jsonl`
-- [ ] T066 [US9] Adicionar a ferramenta `registrar_reclamacao` em `src/emporio/tools.py`, conforme `contracts/tools.md`
-- [ ] T067 [US9] Adicionar o subcomando `reclamacoes` em `src/emporio/cli.py`, conforme `contracts/cli.md`
-- [ ] T068 [US9] Em `src/emporio/prompts.py`, orientar a pedir contato antes de registrar, só prometer 24 horas úteis com `registrada` verdadeiro, encaminhar sem improviso (FR-039) e, com a data e hora injetadas, informar a volta da equipe fora do horário (FR-047)
+- [X] T063 [P] [US9] Escrever `tests/unit/test_complaints.py` com diretório temporário: grava campos de `data-model.md`; "`resumo` obrigatório, não vazio" e "`contato` obrigatório, não vazio"; falha de escrita retorna `registrada` falso; listagem da mais recente para a mais antiga
+- [X] T064 [P] [US9] Escrever `tests/e2e/test_us9_reclamacao.py`: reclamação recebe empatia, pede contato antes de registrar e informa 24 horas úteis; pergunta não coberta encaminha para o telefone oficial; às 20h, informa a volta da equipe às 9h do dia seguinte
+- [X] T065 [US9] Implementar `src/emporio/complaints.py`, gravando em `data/runtime/reclamacoes.jsonl`
+- [X] T066 [US9] Adicionar a ferramenta `registrar_reclamacao` em `src/emporio/tools.py`, conforme `contracts/tools.md`
+- [X] T067 [US9] Adicionar o subcomando `reclamacoes` em `src/emporio/cli.py`, conforme `contracts/cli.md`
+- [X] T068 [US9] Em `src/emporio/prompts.py`, orientar a pedir contato antes de registrar, só prometer 24 horas úteis com `registrada` verdadeiro, encaminhar sem improviso (FR-039) e, com a data e hora injetadas, informar a volta da equipe fora do horário (FR-047)
 
 **Checkpoint**: Todas as histórias funcionam
 
@@ -247,14 +247,14 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 **Purpose**: API opcional, medição dos critérios e entregáveis
 
-- [ ] T069 [P] Escrever `tests/integration/test_api.py` com `httpx` e LLM falso: sem `session_id` cria sessão; id desconhecido retorna 404; mensagem vazia retorna 422; resposta não expõe chamadas de ferramenta
-- [ ] T070 Implementar `src/emporio/api.py` com FastAPI: `POST /chat` e `GET /health`, conforme `contracts/http-api.md`, com `session_id` em UUID4 gerado pelo servidor, trava por sessão e `127.0.0.1` como padrão documentado
-- [ ] T071 [P] Escrever `tests/unit/test_logs.py`: `--debug` mascara `contato` e não registra e-mail nem telefone
-- [ ] T072 [P] Escrever `tests/e2e/test_exatidao.py` com 30 perguntas (SC-002) e o conjunto de perguntas recorrentes (SC-008), aplicando `auditar_valores` e medindo o percentil 95 de duração (SC-009)
+- [X] T069 [P] Escrever `tests/integration/test_api.py` com `httpx` e LLM falso: sem `session_id` cria sessão; id desconhecido retorna 404; mensagem vazia retorna 422; resposta não expõe chamadas de ferramenta
+- [X] T070 Implementar `src/emporio/api.py` com FastAPI: `POST /chat` e `GET /health`, conforme `contracts/http-api.md`, com `session_id` em UUID4 gerado pelo servidor, trava por sessão e `127.0.0.1` como padrão documentado
+- [X] T071 [P] Escrever `tests/unit/test_logs.py`: `--debug` mascara `contato` e não registra e-mail nem telefone
+- [X] T072 [P] Escrever `tests/e2e/test_exatidao.py` com 30 perguntas (SC-002) e o conjunto de perguntas recorrentes (SC-008), aplicando `auditar_valores` e medindo o percentil 95 de duração (SC-009)
 - [ ] T073 Rodar `uv run pytest -m e2e` três vezes com `anthropic/claude-sonnet-5.5` e `anthropic/claude-haiku-5.5`, definir o modelo padrão em `src/emporio/config.py` e `.env.example`, e registrar exatidão, custo e tempo no `README.md`
-- [ ] T074 Gerar pela CLI de 3 a 5 conversas em `examples/`, com `--data 2026-02-20`: ao menos uma com o pedido 7 e prazo de arrependimento, e uma com promoção e parcelas
-- [ ] T075 Escrever `README.md`: instalação com `uv sync`, `.env`, execução; justificativas (OpenRouter, function calling, sem framework, manual por seção); `--data` e o motivo; suposições; limitações (promoções sem data, itens sem preço pago, pedidos 3, 20, 9, 16 e 18, bloqueio por sessão, API sem autenticação, envio de dados ao provedor); próximos passos; uso de assistentes de IA
-- [ ] T076 Executar `specs/001-agente-atendimento/quickstart.md` do início ao fim e corrigir divergências em `README.md`
+- [X] T074 Gerar pela CLI de 3 a 5 conversas em `examples/`, com `--data 2026-02-20`: ao menos uma com o pedido 7 e prazo de arrependimento, e uma com promoção e parcelas
+- [X] T075 Escrever `README.md`: instalação com `uv sync`, `.env`, execução; justificativas (OpenRouter, function calling, sem framework, manual por seção); `--data` e o motivo; suposições; limitações (promoções sem data, itens sem preço pago, pedidos 3, 20, 9, 16 e 18, bloqueio por sessão, API sem autenticação, envio de dados ao provedor); próximos passos; uso de assistentes de IA
+- [X] T076 Executar `specs/001-agente-atendimento/quickstart.md` do início ao fim e corrigir divergências em `README.md`
 - [ ] T077 Solicitar a revisão de tom de 20 respostas (SC-010) e o teste do README por uma pessoa de fora (SC-011), registrando o resultado em `README.md`
 - [ ] T078 Conferir com `git log` e `git status` que o histórico é real e que `.env` e `data/runtime/` não estão versionados; só publicar o repositório depois da confirmação do responsável, incluindo a do PDF marcado como documento interno
 

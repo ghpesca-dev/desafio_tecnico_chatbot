@@ -29,6 +29,6 @@ Lista as reclamações registradas, da mais recente para a mais antiga. Sem regi
 | Variável | Obrigatória | Padrão |
 |----------|-------------|--------|
 | `OPENROUTER_API_KEY` | Sim, para conversar | Nenhum |
-| `OPENROUTER_MODEL` | Não | `anthropic/claude-sonnet-5.5` |
+| `OPENROUTER_MODEL` | Não | `anthropic/claude-haiku-5.5` |
 | `OPENROUTER_TEMPERATURE` | Não | Não enviada |
 | `EMPORIO_DATA_REFERENCIA` | Não | Data atual em `America/Campo_Grande` |
