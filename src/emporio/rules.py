@@ -19,6 +19,10 @@ def formatar_brl(valor: Decimal) -> str:
     return f"R$ {inteiro.replace(',', '.')},{centavos}"
 
 
+def formatar_percentual(valor: Decimal) -> str:
+    return f"{valor.normalize():f}%"
+
+
 def normalizar(texto: str) -> str:
     """Minúsculas, sem acento e sem pontuação: `GD-20` vira `gd20`."""
     sem_acento = unidecode(texto).lower()

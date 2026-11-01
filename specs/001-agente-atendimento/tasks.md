@@ -66,14 +66,14 @@ Projeto único, com `src/emporio/` e `tests/` na raiz. Os CSVs mantêm o nome or
 
 ### Tests for User Story 1
 
-- [ ] T019 [P] [US1] Escrever `tests/unit/test_busca.py`: "violões" até R$ 1000 retorna 12 no total, 10 exibidos, por menor preço, sem o 96 (sem estoque) e sem o 113 (descontinuado); `violao`, `Violões` e `violoes` resolvem a categoria 5; filtro usa `preco_atual`, então o 121 entra até R$ 450 e o 127 entra até R$ 330; a saída não contém `stock_quantity`; `sopro` e `violino` retornam `categoria_sem_itens`
-- [ ] T020 [P] [US1] Escrever `tests/e2e/test_us1_busca.py`: "Quais violões vocês têm até R$ 1000?" chama `buscar_produtos` e cita apenas preços de produtos válidos; categoria de sopros informa que não há itens no momento
+- [X] T019 [P] [US1] Escrever `tests/unit/test_busca.py`: "violões" até R$ 1000 retorna 12 no total, 10 exibidos, por menor preço, sem o 96 (sem estoque) e sem o 113 (descontinuado); `violao`, `Violões` e `violoes` resolvem a categoria 5; filtro usa `preco_atual`, então o 121 entra até R$ 450 e o 127 entra até R$ 330; a saída não contém `stock_quantity`; `sopro` e `violino` retornam `categoria_sem_itens`
+- [X] T020 [P] [US1] Escrever `tests/e2e/test_us1_busca.py`: "Quais violões vocês têm até R$ 1000?" chama `buscar_produtos` e cita apenas preços de produtos válidos; categoria de sopros informa que não há itens no momento
 
 ### Implementation for User Story 1
 
-- [ ] T021 [US1] Adicionar em `src/emporio/data/repository.py` `resolver_categoria` (por nome e descrição, com singular e plural) e `buscar_produtos` (só `disponivel`, ordem de menor preço, máximo de 10, com `total_encontrado`)
-- [ ] T022 [US1] Adicionar a ferramenta `buscar_produtos` em `src/emporio/tools.py`, com os argumentos e a saída de `contracts/tools.md`, exceto `em_promocao` e `promocao_encontrada`, que entram na US4
-- [ ] T023 [US1] Em `src/emporio/prompts.py`, orientar o uso de `buscar_produtos` e o aviso de que há mais opções quando `total_encontrado > exibidos`
+- [X] T021 [US1] Adicionar em `src/emporio/data/repository.py` `resolver_categoria` (por nome e descrição, com singular e plural) e `buscar_produtos` (só `disponivel`, ordem de menor preço, máximo de 10, com `total_encontrado`)
+- [X] T022 [US1] Adicionar a ferramenta `buscar_produtos` em `src/emporio/tools.py`, com os argumentos e a saída de `contracts/tools.md`, exceto `em_promocao` e `promocao_encontrada`, que entram na US4
+- [X] T023 [US1] Em `src/emporio/prompts.py`, orientar o uso de `buscar_produtos` e o aviso de que há mais opções quando `total_encontrado > exibidos`
 
 **Checkpoint**: A busca funciona pela CLI
 

@@ -5,11 +5,13 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
-from emporio.data.repository import Repository
+from emporio.data.repository import Produto, Repository
+from emporio.rules import formatar_brl, formatar_percentual
 from emporio.session import SessionState
 
 logger = logging.getLogger("emporio.ferramentas")
@@ -85,3 +87,68 @@ class Registro:
 
 
 REGISTRO = Registro()
+
+
+class ProdutoResumo(BaseModel):
+    id: int
+    nome: str
+    categoria: str
+    preco_atual: str
+    preco_original: str | None
+    desconto_percentual: str | None
+    promocao: str | None
+    disponivel: bool
+
+
+def resumir_produto(produto: Produto) -> ProdutoResumo:
+    promocao = produto.promocao_ativa
+    return ProdutoResumo(
+        id=produto.id,
+        nome=produto.nome,
+        categoria=produto.categoria,
+        preco_atual=formatar_brl(produto.preco_atual),
+        preco_original=formatar_brl(produto.preco) if promocao else None,
+        desconto_percentual=(
+            formatar_percentual(promocao.desconto) if promocao else None
+        ),
+        promocao=promocao.nome if promocao else None,
+        disponivel=produto.situacao == "disponivel",
+    )
+
+
+class ArgsBuscarProdutos(BaseModel):
+    categoria: str | None = Field(
+        None, description="Tipo de instrumento, como violão, guitarra ou teclado."
+    )
+    texto: str | None = Field(None, description="Nome ou marca do produto.")
+    preco_min: Decimal | None = Field(None, description="Preço mínimo, em reais.")
+    preco_max: Decimal | None = Field(None, description="Preço máximo, em reais.")
+
+
+class SaidaBuscarProdutos(BaseModel):
+    total_encontrado: int
+    exibidos: int
+    categoria_resolvida: str | None
+    categoria_sem_itens: bool
+    produtos: list[ProdutoResumo]
+
+
+@REGISTRO.ferramenta(
+    "buscar_produtos",
+    "Lista produtos disponíveis por tipo, nome ou marca e faixa de preço.",
+    ArgsBuscarProdutos,
+)
+def buscar_produtos(args: ArgsBuscarProdutos, ctx: Contexto) -> SaidaBuscarProdutos:
+    resultado = ctx.repo.buscar_produtos(
+        categoria=args.categoria,
+        texto=args.texto,
+        preco_min=args.preco_min,
+        preco_max=args.preco_max,
+    )
+    return SaidaBuscarProdutos(
+        total_encontrado=resultado.total,
+        exibidos=len(resultado.produtos),
+        categoria_resolvida=", ".join(c.nome for c in resultado.categorias) or None,
+        categoria_sem_itens=resultado.categoria_sem_itens,
+        produtos=[resumir_produto(p) for p in resultado.produtos],
+    )
