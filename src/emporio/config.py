@@ -13,6 +13,7 @@ RAIZ = Path(__file__).resolve().parents[2]
 PASTA_DADOS = RAIZ / "data"
 PASTA_POLITICAS = PASTA_DADOS / "processed" / "politicas"
 ARQUIVO_RECLAMACOES = PASTA_DADOS / "runtime" / "reclamacoes.jsonl"
+PASTA_CONVERSAS = PASTA_DADOS / "runtime" / "conversas"
 
 BASE_URL = "https://openrouter.ai/api/v1"
 MODELO_PADRAO = "anthropic/claude-haiku-5.5"

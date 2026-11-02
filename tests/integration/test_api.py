@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from emporio.agent import Agent
 from emporio.api import criar_app
 from emporio.config import Config
+from emporio.historico import Historico
 from emporio.tools import Registro
 
 
@@ -30,7 +31,7 @@ def cliente_llm():
 
 
 @pytest.fixture
-def api(cliente_llm):
+def api(cliente_llm, tmp_path):
     agente = Agent(
         cliente=cliente_llm,
         config=Config(modelo="m", data_referencia=date(2026, 2, 20)),
@@ -38,7 +39,7 @@ def api(cliente_llm):
         repo=None,
         relogio=lambda: datetime(2026, 2, 20, 10, 0),
     )
-    with TestClient(criar_app(agente)) as cliente:
+    with TestClient(criar_app(agente, Historico(tmp_path))) as cliente:
         yield cliente
 
 
@@ -84,7 +85,7 @@ def test_resposta_nao_expoe_chamadas_de_ferramenta(api):
     assert set(corpo) == {"session_id", "resposta"}
 
 
-def test_mesma_sessao_processa_uma_mensagem_por_vez(cliente_llm):
+def test_mesma_sessao_processa_uma_mensagem_por_vez(cliente_llm, tmp_path):
     em_andamento = []
     simultaneas = []
     liberar = threading.Event()
@@ -105,7 +106,7 @@ def test_mesma_sessao_processa_uma_mensagem_por_vez(cliente_llm):
         repo=None,
         relogio=lambda: datetime(2026, 2, 20, 10, 0),
     )
-    with TestClient(criar_app(agente)) as api:
+    with TestClient(criar_app(agente, Historico(tmp_path))) as api:
         sessao = api.post("/chat", json={"mensagem": "oi"}).json()["session_id"]
         fios = [
             threading.Thread(

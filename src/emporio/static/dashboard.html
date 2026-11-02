@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Empório da Música</title>
+<style>
+  :root {
+    --fundo: #f6f3ee; --painel: #ffffff; --texto: #2a2520; --suave: #6f665c;
+    --linha: #e4ddd2; --marca: #9a3b1f; --marca-texto: #ffffff;
+    --cliente: #f3e2d8; --aviso: #fbf1d9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #191614; --painel: #231f1c; --texto: #efe9e2; --suave: #a79d92;
+      --linha: #3a342e; --marca: #d9704b; --marca-texto: #191614;
+      --cliente: #3c2a21; --aviso: #3a3120;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--fundo); color: var(--texto);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100dvh;
+  }
+  button, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  header {
+    display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
+    padding: 10px 16px; background: var(--painel); border-bottom: 1px solid var(--linha);
+  }
+  h1 { font-size: 17px; margin: 0; }
+  header small { color: var(--suave); }
+
+  #numeros {
+    display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+    padding: 8px 16px; border-bottom: 1px solid var(--linha);
+  }
+  .numero { min-width: 0; }
+  .numero span { display: block; font-size: 12px; color: var(--suave); }
+  .numero strong { display: block; font-size: 17px; overflow-wrap: anywhere; }
+  .numero strong.pequeno { font-size: 13px; font-weight: 500; }
+
+  main { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 0; }
+
+  aside {
+    display: flex; flex-direction: column; min-height: 0;
+    background: var(--painel); border-right: 1px solid var(--linha);
+  }
+  #nova {
+    margin: 12px; padding: 8px; border: 0; border-radius: 8px;
+    background: var(--marca); color: var(--marca-texto); font-weight: 600;
+  }
+  #lista { list-style: none; margin: 0; padding: 0 8px 8px; overflow-y: auto; flex: 1; }
+  #lista li { display: flex; align-items: stretch; border-radius: 8px; }
+  #lista li.aberta { background: var(--cliente); }
+  .item {
+    flex: 1; min-width: 0; padding: 8px; border: 0; background: none; text-align: left;
+  }
+  .item b {
+    display: block; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .item small { color: var(--suave); }
+  .apagar { width: 34px; border: 0; background: none; color: var(--suave); font-size: 16px; }
+  #vazia { padding: 8px 16px; color: var(--suave); }
+
+  section { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  #conversa { flex: 1; overflow-y: auto; padding: 16px; }
+  .coluna { max-width: 760px; margin: 0 auto; }
+
+  .mensagem { margin: 0 0 14px; display: flex; flex-direction: column; }
+  .balao {
+    max-width: 88%; padding: 9px 13px; border-radius: 12px;
+    background: var(--painel); border: 1px solid var(--linha); overflow-wrap: anywhere;
+  }
+  .cliente { align-items: flex-end; }
+  .cliente .balao { background: var(--cliente); border-color: transparent; white-space: pre-wrap; }
+  .balao p { margin: 0 0 8px; }
+  .balao ul, .balao ol { margin: 0 0 8px; padding-left: 20px; }
+  .balao > :last-child { margin-bottom: 0; }
+
+  .detalhes { max-width: 88%; margin-top: 4px; font-size: 12.5px; color: var(--suave); }
+  .detalhes summary { cursor: pointer; }
+  .consulta { margin: 6px 0 0; }
+  .consulta code {
+    display: block; padding: 4px 6px; border-radius: 6px; background: var(--fundo);
+    overflow-wrap: anywhere; font-size: 12px;
+  }
+
+  #exemplos { padding-top: 24px; }
+  #exemplos h2 { font-size: 16px; margin: 0 0 4px; }
+  #exemplos p { margin: 0 0 12px; color: var(--suave); }
+  .exemplo {
+    display: block; width: 100%; margin-bottom: 8px; padding: 9px 12px; text-align: left;
+    border: 1px solid var(--linha); border-radius: 8px; background: var(--painel);
+  }
+  .exemplo small { display: block; color: var(--suave); }
+
+  #espera { color: var(--suave); font-style: italic; }
+  #aviso { padding: 8px 16px; background: var(--aviso); font-size: 13.5px; }
+
+  form { display: flex; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--linha); background: var(--painel); }
+  textarea {
+    flex: 1; min-width: 0; height: 42px; max-height: 120px; resize: vertical; padding: 9px 11px;
+    border: 1px solid var(--linha); border-radius: 8px; background: var(--fundo);
+  }
+  #enviar {
+    padding: 0 16px; border: 0; border-radius: 8px;
+    background: var(--marca); color: var(--marca-texto); font-weight: 600;
+  }
+  [disabled] { opacity: .55; cursor: not-allowed; }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 720px) {
+    #numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    main { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    aside { border-right: 0; border-bottom: 1px solid var(--linha); max-height: 26dvh; }
+    #nova { margin: 8px 16px; }
+    .balao, .detalhes { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Empório da Música</h1>
+  <small>Demonstração local, sem autenticação. As conversas ficam salvas neste computador.</small>
+  <small id="data" hidden></small>
+</header>
+
+<div id="numeros">
+  <div class="numero"><span>Conversas</span><strong id="n-conversas">0</strong></div>
+  <div class="numero"><span>Mensagens de clientes</span><strong id="n-mensagens">0</strong></div>
+  <div class="numero"><span>Tempo médio de resposta</span><strong id="n-tempo">0 s</strong></div>
+  <div class="numero"><span>Consultas mais usadas</span><strong id="n-consultas" class="pequeno">Nenhuma</strong></div>
+</div>
+
+<main>
+  <aside>
+    <button id="nova" type="button">Nova conversa</button>
+    <ul id="lista"></ul>
+    <div id="vazia" hidden>Nenhuma conversa ainda.</div>
+  </aside>
+
+  <section>
+    <div id="conversa"><div class="coluna" id="coluna"></div></div>
+    <div id="aviso" role="status" hidden></div>
+    <form id="formulario">
+      <textarea id="texto" placeholder="Escreva sua mensagem" aria-label="Mensagem"></textarea>
+      <button id="enviar" type="submit">Enviar</button>
+    </form>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+const EXEMPLOS = [
+  ["Produto", "Quanto custa o Takamine GD20?"],
+  ["Promoção", "Quais instrumentos estão em promoção?"],
+  ["Pedido", "Qual o status do pedido 8?"],
+  ["Política", "Em quanto tempo posso devolver uma compra?"],
+  ["Fora de escopo", "Me passa uma receita de bolo?"],
+];
+
+const el = (id) => document.getElementById(id);
+
+// Tudo é criado com textContent: conteúdo do cliente ou do modelo nunca vira marcação.
+function criar(tag, texto, classe) {
+  const elemento = document.createElement(tag);
+  if (texto !== undefined) elemento.textContent = texto;
+  if (classe) elemento.className = classe;
+  return elemento;
+}
+
+const estado = {
+  aberta: null,          // id da conversa na tela; null é uma conversa nova
+  somenteLeitura: false,
+  enviando: false,
+  visao: 0,              // muda ao trocar de conversa, para ignorar respostas antigas
+};
+
+function comNegrito(destino, linha) {
+  linha.split(/\*\*(.+?)\*\*/).forEach((trecho, i) => {
+    destino.append(i % 2 ? criar("strong", trecho) : trecho);
+  });
+}
+
+// Parágrafos, listas e negrito. Tabelas e links ficam como texto.
+function formatar(texto) {
+  const fragmento = document.createDocumentFragment();
+  let lista = null;
+  let tipo = null;
+  for (const bruta of texto.split("\n")) {
+    const linha = bruta.trim();
+    const marcador = linha.match(/^(?:[-*•]\s+|(\d+)[.)]\s+)(.*)$/);
+    if (marcador) {
+      const novoTipo = marcador[1] ? "ol" : "ul";
+      if (!lista || tipo !== novoTipo) {
+        tipo = novoTipo;
+        lista = criar(tipo);
+        fragmento.append(lista);
+      }
+      const item = criar("li");
+      comNegrito(item, marcador[2]);
+      lista.append(item);
+      continue;
+    }
+    if (!linha) continue;
+    lista = null;
+    const paragrafo = criar("p");
+    const titulo = linha.match(/^#{1,6}\s+(.*)$/);
+    if (titulo) paragrafo.append(criar("strong", titulo[1].replaceAll("**", "")));
+    else comNegrito(paragrafo, linha);
+    fragmento.append(paragrafo);
+  }
+  return fragmento;
+}
+
+const segundos = (ms) => `${(ms / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} s`;
+const horario = (iso) => new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+
+function detalhesDaResposta(mensagem) {
+  const consultas = mensagem.consultas || [];
+  const tempo = segundos(mensagem.tempo_ms || 0);
+  if (!consultas.length) return criar("div", `Nenhuma consulta · ${tempo}`, "detalhes");
+
+  const detalhes = criar("details", undefined, "detalhes");
+  const nomes = consultas.map((c) => c.nome).join(", ");
+  detalhes.append(criar("summary", `${nomes} · ${tempo}`));
+  for (const consulta of consultas) {
+    const bloco = criar("div", undefined, "consulta");
+    bloco.append(`${consulta.nome} (${consulta.duracao_ms} ms)`, criar("code", consulta.parametros));
+    detalhes.append(bloco);
+  }
+  return detalhes;
+}
+
+function desenharMensagem(mensagem) {
+  const bloco = criar("div", undefined, `mensagem ${mensagem.autor}`);
+  const balao = criar("div", undefined, "balao");
+  if (mensagem.autor === "agente") {
+    balao.append(formatar(mensagem.texto));
+    bloco.append(balao, detalhesDaResposta(mensagem));
+  } else {
+    balao.textContent = mensagem.texto;
+    bloco.append(balao);
+  }
+  return bloco;
+}
+
+function desenharExemplos() {
+  const bloco = criar("div");
+  bloco.id = "exemplos";
+  bloco.append(
+    criar("h2", "Comece uma conversa"),
+    criar("p", "Escreva abaixo ou escolha um exemplo."),
+  );
+  for (const [tipo, pergunta] of EXEMPLOS) {
+    const botao = criar("button", undefined, "exemplo");
+    botao.type = "button";
+    botao.append(criar("small", tipo), pergunta);
+    botao.addEventListener("click", () => enviar(pergunta));
+    bloco.append(botao);
+  }
+  return bloco;
+}
+
+function rolarParaOFim() {
+  const area = el("conversa");
+  area.scrollTop = area.scrollHeight;
+}
+
+function mostrarAviso(texto) {
+  el("aviso").textContent = texto || "";
+  el("aviso").hidden = !texto;
+}
+
+function atualizarEnvio() {
+  const bloqueado = estado.enviando || estado.somenteLeitura;
+  el("enviar").disabled = bloqueado;
+  el("texto").disabled = estado.somenteLeitura;
+  for (const botao of document.querySelectorAll(".exemplo")) botao.disabled = bloqueado;
+  if (estado.somenteLeitura) {
+    mostrarAviso("Conversa de antes do último reinício: somente leitura. Comece uma nova para continuar.");
+  }
+}
+
+function novaConversa() {
+  estado.visao += 1;
+  estado.aberta = null;
+  estado.somenteLeitura = false;
+  el("coluna").replaceChildren(desenharExemplos());
+  mostrarAviso("");
+  atualizarEnvio();
+  marcarAberta();
+  el("texto").focus();
+}
+
+async function abrir(id) {
+  const visao = ++estado.visao;
+  const resposta = await fetch(`/conversas/${id}`);
+  if (visao !== estado.visao) return;
+  if (!resposta.ok) {
+    mostrarAviso("Esta conversa não está mais disponível.");
+    await atualizarPainel();
+    return;
+  }
+  const conversa = await resposta.json();
+  estado.aberta = conversa.id;
+  estado.somenteLeitura = conversa.somente_leitura;
+  el("coluna").replaceChildren(...conversa.mensagens.map(desenharMensagem));
+  mostrarAviso("");
+  atualizarEnvio();
+  marcarAberta();
+  rolarParaOFim();
+}
+
+async function apagar(conversa) {
+  if (!confirm(`Apagar a conversa "${conversa.titulo}"? Isso não pode ser desfeito.`)) return;
+  const resposta = await fetch(`/conversas/${conversa.id}`, { method: "DELETE" });
+  if (!resposta.ok && resposta.status !== 404) {
+    mostrarAviso("Não foi possível apagar a conversa.");
+    return;
+  }
+  if (estado.aberta === conversa.id) novaConversa();
+  await atualizarPainel();
+}
+
+function marcarAberta() {
+  for (const item of el("lista").children) {
+    item.classList.toggle("aberta", item.dataset.id === estado.aberta);
+  }
+}
+
+function desenharLista(conversas) {
+  el("vazia").hidden = conversas.length > 0;
+  el("lista").replaceChildren(...conversas.map((conversa) => {
+    const linha = criar("li");
+    linha.dataset.id = conversa.id;
+    const item = criar("button", undefined, "item");
+    item.type = "button";
+    const situacao = conversa.somente_leitura ? " · somente leitura" : "";
+    item.append(criar("b", conversa.titulo), criar("small", horario(conversa.atualizada_em) + situacao));
+    item.addEventListener("click", () => abrir(conversa.id));
+    const remover = criar("button", "×", "apagar");
+    remover.type = "button";
+    remover.setAttribute("aria-label", `Apagar conversa: ${conversa.titulo}`);
+    remover.addEventListener("click", () => apagar(conversa));
+    linha.append(item, remover);
+    return linha;
+  }));
+  marcarAberta();
+}
+
+function desenharNumeros(indicadores, dataReferencia) {
+  el("n-conversas").textContent = indicadores.conversas;
+  el("n-mensagens").textContent = indicadores.mensagens_cliente;
+  el("n-tempo").textContent = segundos(indicadores.tempo_medio_ms);
+  el("n-consultas").textContent = indicadores.consultas_mais_usadas
+    .map((c) => `${c.nome} (${c.total})`).join(", ") || "Nenhuma";
+  el("data").hidden = !dataReferencia;
+  if (dataReferencia) {
+    el("data").textContent = `Data de referência fixada: ${dataReferencia.split("-").reverse().join("/")}`;
+  }
+}
+
+async function atualizarPainel() {
+  const resposta = await fetch("/conversas");
+  if (!resposta.ok) return;
+  const painel = await resposta.json();
+  desenharLista(painel.conversas);
+  desenharNumeros(painel.indicadores, painel.data_referencia);
+}
+
+async function enviar(texto) {
+  texto = texto.trim();
+  if (!texto || estado.enviando || estado.somenteLeitura) return;
+
+  const visao = estado.visao;
+  const conversaId = estado.aberta;
+  const coluna = el("coluna");
+  if (conversaId === null) coluna.replaceChildren();
+  const espera = criar("div", "Consultando...", "mensagem agente");
+  espera.id = "espera";
+  coluna.append(desenharMensagem({ autor: "cliente", texto }), espera);
+  rolarParaOFim();
+
+  el("texto").value = "";
+  mostrarAviso("");
+  estado.enviando = true;
+  atualizarEnvio();
+
+  let corpo = null;
+  let falha = null;
+  try {
+    const resposta = await fetch("/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(conversaId ? { session_id: conversaId, mensagem: texto } : { mensagem: texto }),
+    });
+    if (resposta.ok) corpo = await resposta.json();
+    else if (resposta.status === 404) falha = "A aplicação foi reiniciada e esta conversa ficou somente leitura.";
+    else falha = "A mensagem não foi aceita. Tente de novo.";
+  } catch {
+    falha = "Não foi possível falar com a aplicação. Confira se ela está em execução.";
+  }
+
+  estado.enviando = false;
+  if (corpo) {
+    // Se a pessoa trocou de conversa no meio, a tela dela fica como está.
+    if (visao === estado.visao) await abrir(corpo.session_id);
+    else atualizarEnvio();
+  } else if (visao === estado.visao) {
+    espera.remove();
+    coluna.lastChild.remove();
+    if (!coluna.children.length) coluna.replaceChildren(desenharExemplos());
+    el("texto").value = texto;
+    if (conversaId) await abrir(conversaId);
+    atualizarEnvio();
+    mostrarAviso(falha);
+  } else {
+    atualizarEnvio();
+    mostrarAviso(falha);
+  }
+  await atualizarPainel().catch(() => {});
+}
+
+el("formulario").addEventListener("submit", (evento) => {
+  evento.preventDefault();
+  enviar(el("texto").value);
+});
+el("texto").addEventListener("keydown", (evento) => {
+  if (evento.key === "Enter" && !evento.shiftKey) {
+    evento.preventDefault();
+    enviar(el("texto").value);
+  }
+});
+el("nova").addEventListener("click", novaConversa);
+
+novaConversa();
+atualizarPainel().catch(() => mostrarAviso("Não foi possível carregar o histórico."));
+</script>
+</body>
+</html>

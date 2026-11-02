@@ -50,19 +50,30 @@ curl -s -X POST 127.0.0.1:8000/chat -H 'content-type: application/json' \
   -d '{"mensagem":"Qual o horário da loja?"}'
 ```
 
-Devolve `session_id`, que deve ser reenviado para continuar a conversa. Não tem autenticação: use só em `127.0.0.1`.
+Devolve `session_id`, que deve ser reenviado para continuar a conversa. Não tem autenticação: use só em `127.0.0.1`. Conversas feitas pela API também aparecem no dashboard.
+
+### Dashboard de demonstração
+
+```bash
+uv sync --extra api
+EMPORIO_DATA_REFERENCIA=2026-02-20 uv run --extra api uvicorn emporio.api:app
+```
+
+Abra <http://127.0.0.1:8000/>. A página mostra o chat, o histórico de conversas, as consultas e o tempo de cada resposta, além de alguns números. A variável fixa a data, pelo mesmo motivo do `--data` na CLI.
+
+O histórico fica em `data/runtime/conversas/`, um JSON por conversa, fora do Git. Depois de reiniciar o servidor, as conversas continuam visíveis, mas somente leitura: as confirmações de identidade não são restauradas, então nenhum dado de pedido reabre sem nova confirmação.
 
 ### Testes
 
 ```bash
-uv run pytest -m "not e2e"    # 302 testes, sem rede e sem custo
+uv run pytest -m "not e2e"    # 360 testes, sem rede e sem custo
 uv run pytest -m e2e          # 99 cenários com o modelo real; cerca de US$ 0,16 por rodada
 ```
 
 ## Arquitetura
 
 ```text
-Cliente → CLI ou API → Agent (laço de tool use) ⇄ OpenRouter
+Cliente → CLI, API ou dashboard → Agent (laço de tool use) ⇄ OpenRouter
                           │
                           ├─ buscar_produtos, detalhes_produto ─ Repository ─ CSVs
                           ├─ consultar_pedido ──────────────────── SessionState
@@ -77,6 +88,8 @@ Cliente → CLI ou API → Agent (laço de tool use) ⇄ OpenRouter
 | `src/emporio/rules.py` | Regras puras: PIX, parcelas, prazos e identidade |
 | `src/emporio/data/` | Carga, validação e consultas aos CSVs |
 | `src/emporio/session.py` | Histórico e confirmações, fora do alcance do modelo |
+| `src/emporio/historico.py` | Conversas salvas e indicadores do dashboard |
+| `src/emporio/static/dashboard.html` | A página inteira, sem build nem dependências |
 | `src/emporio/policies.py` | Seções do manual |
 | `src/emporio/prompts.py` | System prompt |
 | `src/emporio/complaints.py` | Registro de reclamações |
@@ -138,7 +151,9 @@ O plano previa 3 rodadas, mas foram feitas 2, por limite de crédito. O modelo n
 - Os totais dos pedidos 3 e 20 não batem com a soma dos itens pelo preço atual. O agente informa o total registrado.
 - Os pedidos 9, 16 e 18 foram parcelados abaixo da parcela mínima do manual. O agente mostra o pagamento registrado, sem apontar isso.
 - O bloqueio de identidade é por sessão: uma sessão nova recomeça a contagem. Em produção, ele precisaria valer também por pedido ou por origem.
-- A API não tem autenticação, e as sessões ficam em memória, sem limite nem expiração.
+- A API e o dashboard não têm autenticação, e as sessões ficam em memória, sem limite nem expiração.
+- O histórico do dashboard guarda as mensagens como foram escritas, inclusive e-mail e telefone digitados pelo cliente, sem limite de retenção. A máscara vale só para os parâmetros das consultas.
+- O dashboard formata parágrafos, listas e negrito. Tabelas e links em Markdown aparecem como texto.
 - O histórico da conversa, incluindo o contato escrito pelo cliente e o resultado das consultas, é enviado ao provedor do modelo. O uso em produção exige um provedor com contrato adequado à LGPD.
 - O agente não sabe de feriados. Fora do horário, a volta da equipe é calculada pelo modelo a partir do manual.
 - Uma execução anterior de teste com um modelo gratuito travou por 51 minutos, sem causa confirmada. O limite de 60 s por chamada foi criado para esse risco, mas a causa não foi reproduzida.
