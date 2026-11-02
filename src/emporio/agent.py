@@ -7,7 +7,7 @@ import re
 import threading
 import time
 from collections.abc import Callable
-from datetime import datetime
+from datetime import date, datetime
 
 import openai
 
@@ -27,6 +27,9 @@ FALLBACK = (
     "contato@emporiodamusica.com.br."
 )
 CAMPOS_MASCARADOS = {"contato"}
+# Texto livre, como o resumo de uma reclamação, também pode trazer contato.
+EMAIL = re.compile(r"[^\s@]+@[^\s@]+")
+TELEFONE = re.compile(r"(?:\+|\()?(?:\d[\s().-]*){8,}")
 
 # O turno termina na mensagem: quem promete consultar sem chamar uma ferramenta
 # deixa o cliente sem resposta. O prompt reduz isso, mas não garante.
@@ -47,18 +50,28 @@ def criar_cliente(config: Config) -> openai.OpenAI:
     )
 
 
+def _mascarar(valor):
+    if isinstance(valor, str):
+        return TELEFONE.sub("***", EMAIL.sub("***", valor))
+    if isinstance(valor, list):
+        return [_mascarar(item) for item in valor]
+    if isinstance(valor, dict):
+        return {
+            chave: "***" if chave in CAMPOS_MASCARADOS else _mascarar(item)
+            for chave, item in valor.items()
+        }
+    return valor
+
+
 def mascarar_argumentos(argumentos: str) -> str:
-    """Versão de log dos argumentos, sem dados de contato."""
+    """Versão dos argumentos para log e dashboard, sem dados de contato."""
     try:
         dados = json.loads(argumentos or "{}")
     except json.JSONDecodeError:
         return "<argumentos inválidos>"
     if not isinstance(dados, dict):
         return "<argumentos inválidos>"
-    return json.dumps(
-        {k: "***" if k in CAMPOS_MASCARADOS else v for k, v in dados.items()},
-        ensure_ascii=False,
-    )
+    return json.dumps(_mascarar(dados), ensure_ascii=False)
 
 
 class Agent:
@@ -80,7 +93,12 @@ class Agent:
         self._politicas = politicas
         self._reclamacoes = reclamacoes
 
+    @property
+    def data_referencia(self) -> date | None:
+        return self._config.data_referencia
+
     def responder(self, sessao: SessionState, texto: str) -> str:
+        sessao.consultas_turno = []
         sessao.registrar_mensagem_cliente(texto)
         sessao.cortar_janela(self._config.janela_trocas)
         # Calculada depois do corte, que muda os índices do histórico.
@@ -203,11 +221,20 @@ class Agent:
             resultado = self._registro.despachar(
                 chamada.function.name, chamada.function.arguments, contexto
             )
+            duracao_ms = (time.perf_counter() - inicio) * 1000
+            parametros = mascarar_argumentos(chamada.function.arguments)
             logger.debug(
                 "ferramenta=%s args=%s duracao_ms=%.1f",
                 chamada.function.name,
-                mascarar_argumentos(chamada.function.arguments),
-                (time.perf_counter() - inicio) * 1000,
+                parametros,
+                duracao_ms,
+            )
+            sessao.consultas_turno.append(
+                {
+                    "nome": chamada.function.name,
+                    "parametros": parametros,
+                    "duracao_ms": round(duracao_ms, 1),
+                }
             )
             sessao.mensagens.append(
                 {

@@ -15,6 +15,8 @@ class SessionState:
     pedidos_confirmados: set[int] = field(default_factory=set)
     falhas_confirmacao: int = 0
     mensagens_cliente_recentes: list[str] = field(default_factory=list)
+    # Consultas do turno atual, para o dashboard. Não vão ao modelo.
+    consultas_turno: list[dict] = field(default_factory=list)
 
     def registrar_mensagem_cliente(self, texto: str) -> None:
         self.mensagens.append({"role": "user", "content": texto})
