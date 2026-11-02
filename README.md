@@ -171,6 +171,6 @@ O plano previa 3 rodadas, mas foram feitas 2, por limite de crédito. O modelo n
 
 ## Uso de assistentes de IA
 
-O projeto foi construído com o Claude Code, seguindo o fluxo do [Spec Kit](https://github.com/github/spec-kit): especificação, plano, tarefas e implementação, em `specs/001-agente-atendimento/`. A pessoa responsável definiu os requisitos, a stack e as prioridades, e decidiu o modelo e o escopo em cada etapa. O assistente escreveu o código, os testes e a documentação.
+O projeto foi construído com o Claude Code, seguindo o fluxo do [Spec Kit](https://github.com/github/spec-kit): especificação, plano, tarefas e implementação, em `specs/001-agente-atendimento/` para o agente e em `specs/002-dashboard-demo/` para o dashboard. A pessoa responsável definiu os requisitos, a stack e as prioridades, e decidiu o modelo e o escopo em cada etapa. O assistente escreveu o código, os testes e a documentação.
 
 Os dados corrigiram o desenho inicial em vários pontos, como promoções sem data, defeito contado da compra e mínimo de parcela em 2x e 3x. Os testes com modelo real revelaram falhas que os testes sem rede não pegam, como prometer uma consulta sem fazê-la.
