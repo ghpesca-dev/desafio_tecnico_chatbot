@@ -45,7 +45,12 @@ Lista as reclamações registradas, da mais recente para a mais antiga. O arquiv
 
 ```bash
 uv sync --extra api
-uv run uvicorn emporio.api:app
+uv run --extra api uvicorn emporio.api:app
+```
+
+Com o servidor no ar, em outro terminal:
+
+```bash
 curl -s -X POST 127.0.0.1:8000/chat -H 'content-type: application/json' \
   -d '{"mensagem":"Qual o horário da loja?"}'
 ```
@@ -94,6 +99,20 @@ Cliente → CLI, API ou dashboard → Agent (laço de tool use) ⇄ OpenRouter
 | `src/emporio/prompts.py` | System prompt |
 | `src/emporio/complaints.py` | Registro de reclamações |
 
+### Ferramentas
+
+O modelo escolhe a ferramenta e os argumentos. O código valida os argumentos com Pydantic, executa a consulta e devolve JSON.
+
+| Ferramenta | Recebe | Devolve |
+|------------|--------|---------|
+| `buscar_produtos` | Categoria, texto, faixa de preço ou só promoções | Produtos disponíveis, com o total encontrado e o preço pronto para exibir |
+| `detalhes_produto` | Nome, mesmo aproximado, ou id | Preço, situação, PIX, parcelas e alternativas; se houver dúvida, os candidatos |
+| `consultar_pedido` | Número do pedido e, se o cliente informou, o contato | Status, rastreio, itens e prazos de troca, só depois de confirmar a identidade |
+| `consultar_politica` | Uma das 9 seções do manual | O texto da seção |
+| `registrar_reclamacao` | Resumo e contato; nome e pedido são opcionais | O número de protocolo |
+
+Erros não encerram o turno: argumento inválido ou falha na consulta volta ao modelo como `{"erro": ...}`, sem detalhes internos. Quando a resposta exige cuidado, como em produto não encontrado ou identidade não confirmada, o campo `orientacao` diz ao modelo o que falar.
+
 ## Decisões técnicas
 
 - **OpenRouter:** dá acesso a vários modelos pela mesma API. Foi o que permitiu comparar modelos só trocando uma variável de ambiente.
@@ -132,8 +151,6 @@ Medidos em 2 rodadas seguidas da suíte final, com `claude-haiku-5.5` e a data f
 | Resolvidas sem a equipe | Pelo menos 80% | 87% e 90% |
 | Custo | Não definida | Cerca de US$ 0,16 por rodada |
 
-O plano previa 3 rodadas, mas foram feitas 2, por limite de crédito. O modelo não é determinístico, então isso reduz a confiança, mas não elimina falhas futuras: uma rodada anterior, com menos cenários, teve falhas que depois foram corrigidas.
-
 ## Suposições sobre os dados
 
 - **Promoções não têm datas.** Ativa é `is_active = 1`. Se houver várias ativas, vale o maior desconto. Encerrada é `is_active = 0`, e entre várias vale o maior `promotion_id`.
@@ -147,6 +164,7 @@ O plano previa 3 rodadas, mas foram feitas 2, por limite de crédito. O modelo n
 
 ## Limitações conhecidas
 
+- Um modelo escrito errado pode ser tratado como o produto mais próximo: `Rozini R 104` traz o preço do RC-104, sem avisar da diferença, e o agente pode falar do modelo citado como se ele existisse.
 - Os itens de pedido não trazem o preço pago, então a resposta mostra só nome e quantidade.
 - Os totais dos pedidos 3 e 20 não batem com a soma dos itens pelo preço atual. O agente informa o total registrado.
 - Os pedidos 9, 16 e 18 foram parcelados abaixo da parcela mínima do manual. O agente mostra o pagamento registrado, sem apontar isso.
